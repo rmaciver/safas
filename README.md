@@ -1,5 +1,5 @@
 # safas
-**s**edimentation **A**nd **F**loc **A**nalysis **S**oftware
+**s**edimentation **a**nd **f**loc **a**nalysis **s**oftware
 
 A Python module for processing and interpretation of images and videos of flocs, a.k.a. aggregates, a.k.a. cohesive sediments.
 
