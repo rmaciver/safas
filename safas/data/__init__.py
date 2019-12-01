@@ -59,9 +59,21 @@ def _load(f, as_gray=False):
 def mudflocs():
     """Gray-level "mudflocs" image.
     Example image of mud flocs in settling colum.
+    Higher number density
     Returns
     -------
-    camera : (512, 512) uint8 ndarray
+    camera : (512, 512, 3) uint8 ndarray
         Mudflocs image.
     """
     return _load("mudflocs.png")
+
+def clayflocs():
+    """Gray-level "clayflocs" image.
+    Example image of clay flocs in settling colum.
+    Lower number density
+    Returns
+    -------
+    camera : (512, 512, 3) uint8 ndarray
+        clayflocs image.
+    """
+    return _load("clayflocs.png")

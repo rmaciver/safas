@@ -1,0 +1,22 @@
+baseout: C:\Users\Ryan\Desktop\Data\pro
+basein: C:\Users\Ryan\Desktop\Data\raw
+params_file: None
+input: C:/Users/Ryan/Desktop/Data/raw/2019-11-27_mix_samples_graviprobe_2/raw/001_part1_mix_samples_graviprobe_2.avi
+output: 0
+
+tracker_control:
+  views:
+    new: True
+    open: False
+    tracks: True
+
+improcess:
+  mode: trigger
+  running: False
+  filter: sobel_focus
+  kwargs:
+    pre_filter: True
+    focus_filter: False
+    clearborder_filter: False
+    img_thresh: 90
+    edge_thresh: 55
