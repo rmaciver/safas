@@ -53,7 +53,7 @@ class Handler(QObject):
         self.open_vidreader()
         self.threadpool.add_to_queue(self.start_video)
 
-        if self.params['improcess']['mode']  == 'trigger':
+        if self.params['improcess']['mode']  == 'manual':
             print('wait for trigger from TrackbarViewer')
             self.tracker = Tracker(parent=self)
             self.get_filter(name=self.params['improcess']['filter'])
@@ -77,7 +77,9 @@ class Handler(QObject):
         width  = int(self.cap.get(cv2.CAP_PROP_FRAME_WIDTH))  # float
         height = int(self.cap.get(cv2.CAP_PROP_FRAME_HEIGHT)) # float
         length = int(self.cap.get(cv2.CAP_PROP_FRAME_COUNT))
+        fps = int(self.cap.get(cv2.CAP_PROP_FPS))
 
+        self.fps = fps
         self.size = (width, height, length)
 
     def start_video(self, **kwargs):
@@ -91,25 +93,21 @@ class Handler(QObject):
         """ viewer callback, manual mode """
         self.cap.set(cv2.CAP_PROP_POS_FRAMES, index)
         err, frame = self.cap.read()
-
         self.frame_index = index
 
-        # if process, process before emitting. that way, only frame signal goes
         if self.params['improcess']['running']:
-            print('process the frames in get_frame')
             label_frame, frame = self.filter(src=frame,
-                                           params=self.params['improcess']['kwargs'])
+                                             params=self.params['improcess']['kwargs'])
             self.frame_count += 1
             self.label_img = label_frame
             self.contour_img = frame
-
             self.tracker.add_frame(label_frame, index)
+            self.process_finished_signal.emit(1)
 
         # emit either the raw or overlay image
         self.frame_signal.emit(frame, index)
 
     def set_process(self, **kwargs):
-        print('set a property')
         self.process_frames = True
 
     def get_filter(self, name):

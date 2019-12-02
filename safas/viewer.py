@@ -26,6 +26,8 @@ class TrackbarViewer(QObject):
         self.name = 'trackbar'
         self.pos = (750, 50)
         self.scale = 0.5
+        self.frame_index = 0
+
         self.setup_window()
 
     def setup_window(self):
@@ -44,7 +46,7 @@ class TrackbarViewer(QObject):
 
         cv2.createTrackbar( 'start', self.name, 0, self.size[2], self.on_change)
         cv2.createTrackbar( 'end'  , self.name, self.size[2], self.size[2], self.on_change)
-        self.on_change(0)
+        self.on_change(1)
 
         self.start = cv2.getTrackbarPos('start', self.name)
         self.end   = cv2.getTrackbarPos('end', self.name)

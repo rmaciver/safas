@@ -17,7 +17,7 @@ notes:
 """
 import os
 import sys
-
+from glob import glob
 import importlib
 import time
 
@@ -33,7 +33,6 @@ from safas.trackpanel import TrackPanel
 from safas.handler import Handler
 from safas.qt_threads import QueueThreads
 from safas.config import config_params, read_params, set_dirout
-
 
 __author__ = 'Ryan MacIver'
 __copyright__ = 'Copyright 2019'
@@ -68,6 +67,15 @@ class Stream(QObject):
     def update_resource_path(self, **kwargs):
         self.res_path = Path(os.path.realpath(__file__)).parents[0]
         self.params_path = os.path.join(self.res_path, 'params')
+        print('resource path:', self.res_path)
+
+    def list_filters(self):
+        """ get short names of folders for import """
+        paths =  glob(os.path.join(self.res_path, 'filters/*/'))
+        paths = [os.path.basename(os.path.dirname(path)) for path in paths]
+        if '__pycache__' in paths:
+            paths.remove('__pycache__')
+        return paths
 
     def config(self):
         """ update params from config file if necessary"""
@@ -101,9 +109,14 @@ class Stream(QObject):
     def track(self):
         """ track in GUI or headless mode """
         self.track_panel = TrackPanel(parent=self)
+
         # connect TrackPanel and Tracks objects to status box in main gui
         self.track_panel.status_update_signal.connect(self.parent.update_status)
         self.track_panel.tracks.status_update_signal.connect(self.parent.update_status)
+        self.track_panel.tracks.status_update_signal.connect(self.parent.update_status)
+
+        # this is the main control point in the tracking display and user input
+        self.handler.process_finished_signal.connect(self.track_panel.tracks.handle)
 
     def stop(self):
        self.handler.stop()

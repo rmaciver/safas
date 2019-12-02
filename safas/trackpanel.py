@@ -35,6 +35,10 @@ class TrackPanel(QMainWindow):
         self.click_start()
         self.tracks = TrackLists(parent=self.parent)
 
+        # add shortcut for move to next frame
+        self.next_frame_shortcut = QShortcut(QKeySequence("n"), self)
+        self.next_frame_shortcut.activated.connect(self.click_next)
+
     def setup_view_panel(self):
         """ enable/disable NEW, OPEN,TRACKS"""
         top_layout_2 = QGridLayout()
@@ -225,12 +229,18 @@ class TrackLists(QMainWindow):
         # link open end of track to the new object
         self.link_shortcut = QShortcut(QKeySequence("l"), self)
         self.link_shortcut.activated.connect(self.link_pair)
-
         # add the new object as a new track
         self.newtrack_shortcut = QShortcut(QKeySequence("a"), self)
         self.newtrack_shortcut.activated.connect(self.transfer_new)
 
-        self.status_update_signal.emit('press "l" to link selected new and open objects')
+
+        lines = 'keyboard shortcuts:'
+        lines += '\n"a" to add object from "new" list'
+        lines += '\n"l" to link selected new and open objects'
+        lines += '\n"n" to link selected new and open objects'
+
+        self.control_message = lines
+        self.status_update_signal.emit(self.control_message)
 
     def setup_lists(self):
         """ """
@@ -266,10 +276,13 @@ class TrackLists(QMainWindow):
         print('update the open objects')
         self.list_open()
 
+        if self.parent.params['tracker_control']['mode'] == 'manual':
+            self.status_update_signal.emit(self.control_message)
+
         if self.parent.params['tracker_control']['mode'] == 'auto-multi':
             print('predict and link multiple objects through time series')
             frame = self.parent.handler.contour_img
-            index = self.parent.handler.frame_num
+            index = self.parent.handler.frame_index
             tracker = self.parent.handler.tracker
             print('track outline:', val_track)
             val_new = self.parent.handler.tracker.predict_next(frame=frame,
@@ -302,8 +315,8 @@ class TrackLists(QMainWindow):
             if val_new is not None:
                  self.tracks.clear()
                 # add to list of tracked objects
-                 frame_num = self.parent.handler.tracker.frame_num
-                 self.parent.handler.tracker.add_object(frame_num, val_new)
+                 frame_index = self.parent.handler.tracker.frame_index
+                 self.parent.handler.tracker.add_object(frame_index, val_new)
                  number_tracks = self.parent.handler.tracker.n_tracks()
 
                  if number_tracks is not None:
@@ -316,7 +329,7 @@ class TrackLists(QMainWindow):
         """ link the selected objects in new and open lists """
         val_track, val_open, val_new = self.get_obj_pair(src='open')
         frame = self.parent.handler.contour_img
-        index = self.parent.handler.frame_num
+        index = self.parent.handler.frame_index
         tracker = self.parent.handler.tracker
 
         self.parent.handler.tracker.update_object_track(index,
@@ -357,7 +370,7 @@ class TrackLists(QMainWindow):
         val_track, val_open, val_new = self.get_obj_pair(src='open')
 
         frame = self.parent.handler.contour_img
-        index = self.parent.handler.frame_num
+        index = self.parent.handler.frame_index
         tracker = self.parent.handler.tracker
 
         if (val_open is not None) or (val_new is not None):
@@ -371,7 +384,7 @@ class TrackLists(QMainWindow):
         val_track, val_open, val_new = self.get_obj_pair(src='tracks')
 
         frame = self.parent.handler.contour_img
-        index = self.parent.handler.frame_num
+        index = self.parent.handler.frame_index
         tracker = self.parent.handler.tracker
 
         if val_track is not None:

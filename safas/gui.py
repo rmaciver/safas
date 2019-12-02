@@ -130,11 +130,11 @@ class Gui(QMainWindow):
         top_layout_2.addWidget(self.buttons['params'], 5, 2)
 
         # script input
-        self.file_status['script'] = QLineEdit('')
-        top_layout_2.addWidget(self.file_status['script'], 6, 1)
-        self.buttons['script'] = QPushButton('filter', clicked=self.update_script)
-        top_layout_2.addWidget(self.buttons['script'], 6, 2)
-        self.buttons['script'].setEnabled(False)
+        self.filter_combo = QComboBox()
+        self.list_filters()
+        self.filter_combo.currentIndexChanged.connect(self.change_filter)
+        top_layout_2.addWidget(self.filter_combo, 6, 1)
+        top_layout_2.addWidget(QLabel('filter'), 6, 2)
         ####
         status_box.setLayout(top_layout_2)
         self.layout.addWidget(status_box, 0, 0)
@@ -154,10 +154,18 @@ class Gui(QMainWindow):
 
         return textbox
 
+    def list_filters(self):
+        """ update the selected filter """
+        self.filter_combo.addItems(self.stream.list_filters())
+
+    def change_filter(self):
+        """ select filter from list """
+        self.stream.params['improcess']['filter'] = self.filter_combo.currentText()
+        print('new filter is:', self.filter_combo.currentText())
+        print('params:', self.stream.params['improcess'])
+
     def update_io_status(self):
         """ update input, output, params, script displays """
-
-        # update each text box if possible
         params = self.stream.params
 
         if params['input'] == 0:
@@ -174,11 +182,6 @@ class Gui(QMainWindow):
             self.file_status['params'].setText(params['params_file'])
         else:
             self.file_status['output'].setText('no parameters file loaded')
-
-        if params['improcess']['filter'] != None:
-            self.file_status['script'].setText(params['improcess']['filter'])
-        else:
-            self.file_status['script'].setText('no script loaded')
 
     def update_resources(self):
         """ """
@@ -205,20 +208,6 @@ class Gui(QMainWindow):
 
         self.update_io()
         self.update_params()
-
-    def update_script(self):
-        path = os.path.join(self.res_path, 'scripts')
-
-        file = QFileDialog.getOpenFileName(self, 'Open process filter', path, 'py files (*.py)')
-
-        script = ntpath.basename(file[0]).split('.')[0]
-        self.load_img_proscript(script=script)
-
-        lines = 'script updated\n'
-        lines += 'default script parameters will be used'
-        self.update_stream_text(lines)
-
-        self.update_io()
 
     @pyqtSlot(QAction)
     def setup_output(self, action):
@@ -281,7 +270,7 @@ class Gui(QMainWindow):
         self.stream.setup()
         self.buttons['track'].setEnabled(True)
         self.buttons['view'].setEnabled(True)
-        
+
     def click_view(self):
         line = 'load data source'
 
