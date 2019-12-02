@@ -29,10 +29,11 @@ import cv2
 
 from safas.matcher import Matcher
 
+"""
+
+"""
 class Tracker(QObject):
     display_frame_signal = pyqtSignal(object, int, name="display_frame_signal")
-    done_process_signal = pyqtSignal(int, name="done_process_signal")
-    open_overlay_signal = pyqtSignal(object, int, name="open_overlay_signal")
 
     def __init__(self, parent=None, params=None, *args, **kwargs):
         super(Tracker, self).__init__(*args, **kwargs)
@@ -61,6 +62,7 @@ class Tracker(QObject):
             if self.frame_count == 0:
                 self.overlay_img = np.zeros_like(frame)
 
+            print('frame details:', np.unique(frame), frame.shape)
             if len(np.unique(frame)) == 2:
                 # frame is not labelled
                 L = label(frame)
@@ -80,7 +82,6 @@ class Tracker(QObject):
                                       'total': T}
             self.frame_num = frame_num
             self.frame_count += 1
-            self.done_process_signal.emit(frame_num)
 
     def list_new(self):
         # for external connections.
@@ -90,12 +91,12 @@ class Tracker(QObject):
         if self.frame_num is None:
             return None
 
-    def list_open(self, index, **kwargs):
+    def list_open(self, **kwargs):
         """ return a list of object numbers in previous frame i.e. open
             to be connected in the current frame
         """
-        index = index - 1 # check previous frame
-        # test if any open chains
+        index = self.frame_num - 1
+
         if len(self.tracks['id']) > 0:
             vals = []
 
@@ -106,17 +107,6 @@ class Tracker(QObject):
             return vals
         else:
             return None
-
-    def n_tracks(self):
-        val = len(list(self.tracks['id'].keys()))
-        return val
-
-    def add_all_objects(self):
-        # used for the first frame to instantiate new tracks
-        for i in range(self.frames[self.frame_num]['total']):
-            prop = self.frames[self.frame_num]['props'][i]
-
-            self.add_object(self.frame_num, i)
 
     def add_object(self, frame_num, id_curr, **kwargs):
         """ add a new object to track """
@@ -141,6 +131,10 @@ class Tracker(QObject):
         """ remove the track from the list """
         self.tracks['id'].pop(id_obj)
 
+    def n_tracks(self):
+        val = len(list(self.tracks['id'].keys()))
+        return val
+
     def update_object_track(self, frame_num, id_obj, id_curr, **kwargs):
         """ add a new object to an existing track """
         prop = self.frames[frame_num]['props'][id_curr]
@@ -149,7 +143,6 @@ class Tracker(QObject):
                 'centroid': prop.centroid,
                 'prop': prop}
         self.tracks['id'][id_obj].append(vals)
-
 
     def save(self, **kwargs):
         # dump the tracks into pandas file
@@ -163,26 +156,6 @@ class Tracker(QObject):
         M = Matcher(self.tracks['id'])
         p1 = M.rank_and_match()
 
-
-    def overlay_single_new(self, frame, index, val, **kwargs):
-        """ make image to be displayed in window for user interaction"""
-        #contours, hierarchy = cv2.findContours(thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
-        coords = self.frames[index]['props'][val].coords
-        frame[coords[:,0], coords[:,1]] = [0, 0, 255] # red
-        return (frame, index)
-
-    def overlay_single_open(self, frame, index, val, **kwargs):
-        """ make image to be displayed in window for user interaction"""
-        #contours, hierarchy = cv2.findContours(thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
-        index -= 1
-
-        if index in self.frames:
-            coords = self.frames[index]['props'][val].coords
-            frame[coords[:,0], coords[:,1]] = [255, 0, 0] # red
-            return (frame, index)
-        else:
-            return None
-
     def outline_pair(self, frame, index, val_open=None, val_new=None, **kwargs):
         """ outline the selected new and open objects """
         if val_new is not None:
@@ -192,19 +165,23 @@ class Tracker(QObject):
 
         self.display_frame_signal.emit(frame, index)
 
-    def overlay_open(self, frame, index, vals, **kwargs):
+    def outline_single_new(self, frame, index, val, **kwargs):
         """ make image to be displayed in window for user interaction"""
-        # make image with open objects overlay
+        #contours, hierarchy = cv2.findContours(thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+        coords = self.frames[index]['props'][val].coords
+        frame[coords[:,0], coords[:,1]] = [0, 0, 255] # red
+        return (frame, index)
+
+    def outline_single_open(self, frame, index, val, **kwargs):
+        """ make image to be displayed in window for user interaction"""
         index -= 1
-        vals = self.tracks['frame'][index]
-        emt = np.zeros_like(frame)
 
-        # will be slower for multiple tracks, use gpu method later
-        for val in vals:
+        if index in self.frames:
             coords = self.frames[index]['props'][val].coords
-            frame[coords[:,0], coords[:,1]] = [255, 0, 0] # red
-
-        self.open_overlay_signal.emit(frame, index)
+            frame[coords[:,0], coords[:,1]] = [255, 0, 0] # blue
+            return (frame, index)
+        else:
+            return None
 
     def outline_track(self, frame, index, id_obj, **kwargs):
         """ overlay a single track when selected """
@@ -217,46 +194,8 @@ class Tracker(QObject):
             alpha = alpha*0.9
             overlay_t[xy[:,0], xy[:,1]] = [100, 175, 255]
 
-#        print('added coords in tracker')
         frame = cv2.addWeighted(frame, 1, overlay_t, alpha, 0)
-#        print('image overlay in tracker')
         self.display_frame_signal.emit(frame, index)
-#        print('emitted image from outline track')
-
-    def overlay_tracks(self, frame, index, **kwargs):
-
-        for track in self.tracks['id']:
-            vals = self.tracks['id'][track]
-
-            frame_num = [item[0] for item in vals]
-            id_curr = [item[1] for item in vals]
-            centroid = [item[2] for item in vals]
-            prop = [item[3] for item in vals]
-
-            overlay = np.zeros_like(frame, dtype=np.uint8)
-
-            for i in range(len(frame_num)):
-                fn = self.frame_num - frame_num[i]
-                alpha = np.exp(-fn/4)
-
-                # list of items in this image
-                vals = self.tracks['frame'][i]
-
-                props = self.frames[frame_num]['props'][vals]
-                overlay_t = np.zeros_like(frame, dtype=np.uint8)
-
-                for prop in props:
-                    coords = prop[i].coords
-                    overlay_t[coords[:,0], coords[:,1]] = [0.7, 1, 1]
-
-                overlay = cv2.addWeighted(overlay, 1, overlay_t, alpha, 0)
-
-        # blend withthe final image
-        frame = cv2.addWeighted(frame, 1, overlay, 1, 0)
-        self.display_frame_signal.emit(frame, index)
-
-
-
 
 
 def test_img():

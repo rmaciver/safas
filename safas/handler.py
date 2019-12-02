@@ -32,6 +32,7 @@ __status__ = 'Dev'
 class Handler(QObject):
 
     frame_signal = pyqtSignal(object, int, name="frame_signal")
+    process_finished_signal = pyqtSignal(int, name='process_finished_signal')
 
     def __init__(self, parent=None, params=None):
         super(self.__class__, self).__init__(parent)
@@ -44,6 +45,7 @@ class Handler(QObject):
             self.params = params
 
         self.frame_index = 0
+        self.frame_count = 0
         self.process_frames = False
 
     def setup(self):
@@ -54,12 +56,12 @@ class Handler(QObject):
         if self.params['improcess']['mode']  == 'trigger':
             print('wait for trigger from TrackbarViewer')
             self.tracker = Tracker(parent=self)
-            #self.get_filter(name=params['tracker_process']['imfilter'])
             self.get_filter(name=self.params['improcess']['filter'])
+            self.params['improcess']['running'] = False
 
         if self.params['improcess']['mode'] == 'auto':
             print('images will be queued and processed')
-            self.process_frames = True
+            self.params['improcess']['running'] = True
 
     def open_vidreader(self):
         file = self.params['input']
@@ -94,12 +96,13 @@ class Handler(QObject):
 
         # if process, process before emitting. that way, only frame signal goes
         if self.params['improcess']['running']:
-            print('proces the frames in get_frame')
+            print('process the frames in get_frame')
             label_frame, frame = self.filter(src=frame,
                                            params=self.params['improcess']['kwargs'])
             self.frame_count += 1
             self.label_img = label_frame
             self.contour_img = frame
+
             self.tracker.add_frame(label_frame, index)
 
         # emit either the raw or overlay image

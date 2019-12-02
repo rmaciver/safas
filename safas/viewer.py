@@ -52,7 +52,7 @@ class TrackbarViewer(QObject):
         if self.start >= self.end:
             raise Exception("start must be less than end")
 
-    def next_frame(self, index, **kwargs):
+    def next_frame(self, **kwargs):
         """ """
         frame_num = self.frame_index
         frame_num += 1

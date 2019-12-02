@@ -9,6 +9,7 @@ tracker_control:
     new: True
     open: False
     tracks: True
+  mode: manual 
 
 improcess:
   mode: trigger

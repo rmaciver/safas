@@ -101,29 +101,11 @@ class Stream(QObject):
     def track(self):
         """ track in GUI or headless mode """
         self.track_panel = TrackPanel(parent=self)
+        # connect TrackPanel and Tracks objects to status box in main gui
         self.track_panel.status_update_signal.connect(self.parent.update_status)
-
-        # self.viewer_trackbar.raw_frame_signal.connect(self.handler.handle)
-        # self.viewer_trackbar.mouse_event_signal.connect(self.track_panel.mouse_event)
-        # self.handler.contour_frame_signal.connect(self.viewer_trackbar.update)
-        # self.handler.tracker.done_process_signal.connect(self.track_panel.update_list_new)
-        # self.handler.tracker.open_overlay_signal.connect(self.viewer_trackbar.update)
-        # self.track_panel.tracks.status_update_signal.connect(self.parent.update_status)
-        # # modify with outline of a single image
-        # self.handler.tracker.display_frame_signal.connect(self.viewer_trackbar.update)
-        # self.handler.tracker.display_frame_signal.connect(self.viewer_trackbar.update)
-        #
-        # self.handler.tracker.display_frame_signal.connect(self.viewer_trackbar.update)
+        self.track_panel.tracks.status_update_signal.connect(self.parent.update_status)
 
     def stop(self):
-       """
-       stop the data source
-       """
-
-       # stop the handler
-       print('stop the handler')
        self.handler.stop()
-       self.viewer_trackbar.stop()
-       # clear threadpool
-       print('clear the threadpool')
+       self.viewer.stop()
        self.threadpool.clear()

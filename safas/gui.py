@@ -92,8 +92,7 @@ class Gui(QMainWindow):
                         'view': view,
                         'track': track,}
 
-        self.buttons['track'].setEnabled(True)
-
+        self.buttons['track'].setEnabled(False)
         self.buttons['view'].setEnabled(False)
 
     def setup_io_panel(self):
@@ -268,7 +267,7 @@ class Gui(QMainWindow):
 
             line = yaml.dump(params, default_flow_style=False)
             self.params_status.setText(line)
-            self.buttons['view'].setEnabled(True)
+
 
         if params is None:
             self.params_status.setText('no parameters loaded')
@@ -278,8 +277,11 @@ class Gui(QMainWindow):
 
     def click_setup(self) :
         """ steup the stream and handler components """
-        self.stream.setup()
 
+        self.stream.setup()
+        self.buttons['track'].setEnabled(True)
+        self.buttons['view'].setEnabled(True)
+        
     def click_view(self):
         line = 'load data source'
 
@@ -297,7 +299,7 @@ class Gui(QMainWindow):
 
         # *** add lines below to gui
         # must have a parent
-        self.stream.start()
+        self.stream.track()
 
         # *** add lines above to gui
 
