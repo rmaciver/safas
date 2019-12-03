@@ -84,7 +84,7 @@ class Stream(QObject):
         self.params = config_params(params=self.params, params_file=self.params_file)
 
     def set_output(self):
-        self.params['dirout'] = set_dirout(self.params)
+        self.params['output'] = set_dirout(self.params)
 
     def setup(self):
         """
@@ -117,7 +117,8 @@ class Stream(QObject):
 
         # this is the main control point in the tracking display and user input
         self.handler.process_finished_signal.connect(self.track_panel.tracks.handle)
-
+        self.handler.tracker.display_frame_signal.connect(self.viewer.update)
+        
     def stop(self):
        self.handler.stop()
        self.viewer.stop()

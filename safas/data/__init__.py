@@ -62,7 +62,7 @@ def mudflocs():
     Higher number density
     Returns
     -------
-    camera : (512, 512, 3) uint8 ndarray
+    camera : (1000, 1000, 3) uint8 ndarray
         Mudflocs image.
     """
     return _load("mudflocs.png")
@@ -73,7 +73,19 @@ def clayflocs():
     Lower number density
     Returns
     -------
-    camera : (512, 512, 3) uint8 ndarray
+    camera : (1000, 1000) uint8 ndarray
         clayflocs image.
     """
     return _load("clayflocs.png")
+
+def brightmudflocs():
+    """Gray-level "clayflocs" image.
+    Example image of clay flocs in settling colum.
+    Brighter light source w. mean approx. 225 on uint8 scale
+
+    Returns
+    -------
+    camera : (1000, 1000, 3) uint8 ndarray
+        brightmudflocs image.
+    """
+    return _load("brightmudflocs.png")

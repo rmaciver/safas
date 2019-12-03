@@ -127,6 +127,7 @@ class TrackPanel(QMainWindow):
         next_frame = QPushButton('next frame >', clicked=self.click_next)
         prev_frame = QPushButton('< prev. frame ', clicked=self.click_prev)
         save = QPushButton('save', clicked=self.click_save)
+      
         exit_track = QPushButton('exit', clicked=self.click_exit_track)
         help = QPushButton('help', clicked=self.get_help)
         top_layout_2.addWidget(list_tracks)
@@ -150,12 +151,12 @@ class TrackPanel(QMainWindow):
         message = "Track objects by manual selection and linking."
 
         message += "\n\nshortcuts:"
-        message += "\n track a new object: highlight the object in the 'new' list, then press keyboard button 'a'"
-        message += "\n link two objects: highlight one object in the 'open' list and one in the 'new' list, then press keyboard button 'l'"
+        message += "\n\n track a new object: highlight the object in the 'new' list, then press keyboard button 'a'"
+        message += "\n\n link two objects: highlight one object in the 'open' list and one in the 'new' list, then press keyboard button 'l'"
 
         message += "\n\ntracks: objects that have been selected by user"
-        message += "\nopen: the most recent object added to a track (i.e. N - 1)"
-        message += "\nnew: objects identified in the current frame.)"
+        message += "\n\nopen: the most recent object added to a track (i.e. N - 1)"
+        message += "\n\nnew: objects identified in the current frame.)"
 
         QMessageBox.about(self, "Object Tracking", message)
 
@@ -174,11 +175,10 @@ class TrackPanel(QMainWindow):
     def click_save(self):
         """ """
         self.parent.handler.tracker.save()
-
+    
     def click_next(self):
         """ """
         self.parent.viewer.next_frame()
-
 
     def click_prev(self):
         """ """
@@ -232,7 +232,6 @@ class TrackLists(QMainWindow):
         # add the new object as a new track
         self.newtrack_shortcut = QShortcut(QKeySequence("a"), self)
         self.newtrack_shortcut.activated.connect(self.transfer_new)
-
 
         lines = 'keyboard shortcuts:'
         lines += '\n"a" to add object from "new" list'

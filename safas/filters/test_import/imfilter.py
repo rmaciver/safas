@@ -24,10 +24,16 @@ from safas.filters.imfilters_module import (marker_based_watershed,
                                            focus_filter,
                                            add_contours)
 
+# define args used for init parameters and gui for user interaction
+define_args = {'img_thresh': [np.int, [0, 255]],
+               'edge_thresh': [np.int, [0, 255]],
+               'apply_focus_filter': [np.bool, [True, False]],
+               'apply_clearedge_filter': [np.bool, [True, False]],
+               }
+
 def imfilter(src,
             img_thresh=100,
             edge_thresh=40,
-            edge_distance=2,
             apply_focus_filter=True,
             apply_clearedge_filter=True,
             contour_color=(0,255,0),
@@ -39,7 +45,7 @@ def imfilter(src,
     labels = marker_based_watershed(src.copy(), thresh)
     
     if apply_focus_filter:
-       labels = focus_filter(labels, gray, edge_thresh)
+       labels = focus_filter(labels, img, edge_thresh)
 
     if apply_clearedge_filter:
         labels = clearedge_filter(labels)
@@ -57,7 +63,6 @@ if __name__ == '__main__':
 
     params = {'img_thresh': 70,
                'edge_thresh': 90,
-               'edge_distance': 1,
                'apply_focus_filter': True,
                'apply_clearborder_filter': True,
                }

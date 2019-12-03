@@ -84,7 +84,6 @@ class Gui(QMainWindow):
         top_layout_2.addWidget(view)
         top_layout_2.addWidget(track)
 
-
         ctrl_groupbox.setLayout(top_layout_2)
         self.layout.addWidget(ctrl_groupbox, 1, 0)
 
@@ -161,8 +160,7 @@ class Gui(QMainWindow):
     def change_filter(self):
         """ select filter from list """
         self.stream.params['improcess']['filter'] = self.filter_combo.currentText()
-        print('new filter is:', self.filter_combo.currentText())
-        print('params:', self.stream.params['improcess'])
+        self.update_params_status()
 
     def update_io_status(self):
         """ update input, output, params, script displays """
@@ -183,7 +181,7 @@ class Gui(QMainWindow):
         else:
             self.file_status['output'].setText('no parameters file loaded')
 
-    def update_resources(self):
+    def update_params(self):
         """ """
         self.stream.update_params()
 
@@ -206,8 +204,7 @@ class Gui(QMainWindow):
             self.file_status['input'].setText(params['input'])
             self.buttons['process'].setEnabled(True)
 
-        self.update_io()
-        self.update_params()
+        #self.update_io()
 
     @pyqtSlot(QAction)
     def setup_output(self, action):
@@ -224,8 +221,8 @@ class Gui(QMainWindow):
                 text = text.replace(' ', '_')
                 self.config.set_output(dir_name=text)
 
-        self.update_io()
-        self.update_params()
+        #self.update_io()
+        #self.update_params()
 
     def update_status(self, line):
         self.stream_status.setText(line)
@@ -241,8 +238,6 @@ class Gui(QMainWindow):
         if params['params_file']:
             self.stream.config_params()
 
-        self.update_params()
-
     def update_params_status(self):
         """ if config file available, that will be loaded
                 otherwise self.params will be passed through config_params
@@ -256,7 +251,6 @@ class Gui(QMainWindow):
 
             line = yaml.dump(params, default_flow_style=False)
             self.params_status.setText(line)
-
 
         if params is None:
             self.params_status.setText('no parameters loaded')
@@ -272,24 +266,16 @@ class Gui(QMainWindow):
         self.buttons['view'].setEnabled(True)
 
     def click_view(self):
-        line = 'load data source'
-
-
-        #self.handler.update_img_position(0)
         # connect the raw and processed images
         self.buttons['track'].setEnabled(True)
         self.stream.view()
         # *** add lines above to gui
 
-
     def click_track(self):
         line = 'process the stream'
         self.update_status(line)
-
         # *** add lines below to gui
-        # must have a parent
         self.stream.track()
-
         # *** add lines above to gui
 
     def closeEvent(self, event=None):

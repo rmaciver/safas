@@ -6,10 +6,17 @@ filter components that can be used in signal chain
 """
 
 import cv2
+from skimage.measure import regionprops
+
 import numpy as np
 
-def focus_filter(labels, img, edge_thresh=30, **kwargs):
+def focus_filter(labels, img, edge_thresh=30, edge_dist=2, **kwargs):
     """ remove out of focus flocs by combining labels and gradient images """
+    grad = cal_grad_img(img)
+    labels = perim_filter(labels, grad, edge_thresh=edge_thresh, edge_dist=edge_dist)
+    return labels
+
+def cal_grad_img(img, edge_thresh=30):
     # calculate the gradient image
     scale = 1
     delta = 0
@@ -22,17 +29,44 @@ def focus_filter(labels, img, edge_thresh=30, **kwargs):
 
     grad = cv2.addWeighted(abs_grad_x, 0.5, abs_grad_y, 0.5, 0)
     N, filt = cv2.threshold(grad, edge_thresh, 255, cv2.THRESH_BINARY)
+    return filt
+
+def perim_filter(labels, grad, edge_thresh=30, edge_dist=5, **kwargs):
+    """ remove out of focus flocs by combining labels and gradient images 
     
-    # apply the thresholded image gradient as a filter
-    # this looks every where...but really only want edges...
-    for lab in np.unique(labels):
-        xy = np.where(labels==lab)
-        vals = grad[xy[0], xy[1]]
+    ** does not seem to perform well for lower extent flocs **
+    
+    """
+    perim = np.zeros_like(labels, dtype=np.uint8)
+    perim[labels > 0] = 255
+    kernel = np.ones((edge_dist, edge_dist), np.uint8)
+    erosion = perim.copy()
+    erosion = cv2.erode(erosion, kernel, iterations=1)
+    perim -= erosion
+    
+    # convet to bool for & operation
+    perimb = perim > 0
+    gradb = grad > 0
+    
+    print('perimb:', perimb.shape)
+    print('gradb:', gradb.shape)
+    
+    fmask = perimb & gradb
+    
+    # erode flood mask to remove marginally focused 
+    kernel = np.ones((2, 2), np.uint8)
+    fmask_er = fmask.astype(np.uint8).copy()*255
+    fmask_er = cv2.morphologyEx(fmask_er, cv2.MORPH_OPEN, kernel)
+    
+    P = regionprops(labels)
+    out = np.zeros_like(labels, np.uint8)
+    
+    for p in P:
+        xy = p.coords
+        if fmask[xy[:,0], xy[:,1]].any():
+            out[xy[:,0], xy[:,1]] = p.label
 
-        if not vals.any():
-            labels[xy[0], xy[1]] = 0
-
-    return labels
+    return out
 
 def clearedge_filter(labels):
     """ clear objects touching edge """
@@ -51,16 +85,43 @@ def clearedge_filter(labels):
     return labels
 
 def prethresh_filter(img, img_thresh=90, **kwargs):
-    """ convert to grayscale, gaussian blur, apply threshold, label"""
+    """ convert to grayscale, gaussian blur, apply threshold, label
+    
+    ** note: THRESH_BINARY_INV for dark objects in bright field **
+    
+    """
     # convert to grayscale and de-noise with gaussian blur
     if img.ndim == 3:
-        img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
- 
-    img = cv2.GaussianBlur(img, (3, 3), 0)
+        img2 = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    if img.ndim == 2:
+        img2 = img.copy()
+        
+    img2 = cv2.GaussianBlur(img2, (3, 3), 0)
     # apply a threshold value to convert grayscale image to binary image
-    ret, thresh = cv2.threshold(img, img_thresh, 255, cv2.THRESH_BINARY_INV)
+    ret, thresh = cv2.threshold(img2, img_thresh, 255, cv2.THRESH_BINARY_INV)
  
-    return (thresh, img)
+    return (thresh, img2)
+
+
+
+def adapt_prethresh_filter(img, block_size=11, **kwargs):
+    """ convert to grayscale, gaussian blur, apply threshold, label
+    
+    ** note: THRESH_BINARY_INV for dark objects in bright field **
+    
+    """
+    # convert to grayscale and de-noise with gaussian blur
+    if img.ndim == 3:
+        img2 = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    if img.ndim == 2:
+        img2 = img.copy()
+        
+    img2 = cv2.GaussianBlur(img2, (3, 3), 0)
+    # apply a threshold value to convert grayscale image to binary image
+    thresh = cv2.adaptiveThreshold(img2, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
+            cv2.THRESH_BINARY_IND, block_size, 2)
+ 
+    return (thresh, img2)
 
 def marker_based_watershed(img, thresh, dist_factor=0, **kwargs):
     """ 
@@ -86,10 +147,14 @@ def marker_based_watershed(img, thresh, dist_factor=0, **kwargs):
     # Now, mark the region of unknown with zero
     labels[unknown==255] = 0
     
-    if img.ndims == 2:
+    if img.ndim == 2:
         img = cv2.cvtColor(img, cv2.COLOR_GRAY2BGR)
     
     labels = cv2.watershed(img, labels)
+    
+    # put background to 0 and -1 edges to 0, for compatibility with other segs
+    labels -= 1
+    labels[labels== -2] = 0
     
     return labels
     
@@ -99,15 +164,20 @@ def add_contours(img, labels, contour_color, **kwargs):
     contourimg = cv2.drawContours(img, contours, -1, contour_color, 1)
 
     return contourimg
+
+
+
     
 if __name__ =='__main__':
     print('test the focus_filter')
     from safas import data
     import matplotlib.pyplot as plt
     img = data.mudflocs()
-    labels = prelabel_filter(img, img_thresh=100)
-    labels = focus_filter(labels, img, edge_tresh=30)
+    thresh, img = prethresh_filter(img, img_thresh=100)
+    labels = marker_based_watershed(img, thresh)
+    grad = cal_grad_img(img, edge_thresh=50)
+    out = focus_filter_perim(labels, grad, edge_dist=2)
     
     f, ax = plt.subplots(1,2, dpi=250)
     ax[0].imshow(img)
-    ax[1].imshow(labels)
+    ax[1].imshow(out)

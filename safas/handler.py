@@ -39,6 +39,7 @@ class Handler(QObject):
 
         # params must be in one or the others
         if parent is not None:
+            self.parent = parent
             self.params = parent.params
             self.threadpool = parent.threadpool
         if parent is None:
@@ -52,11 +53,11 @@ class Handler(QObject):
         """ take params and setup the file source and connections """
         self.open_vidreader()
         self.threadpool.add_to_queue(self.start_video)
+        self.get_filter(name=self.params['improcess']['filter'])
+        self.tracker = Tracker(parent=self)
 
-        if self.params['improcess']['mode']  == 'manual':
+        if self.params['improcess']['mode']  == 'trigger':
             print('wait for trigger from TrackbarViewer')
-            self.tracker = Tracker(parent=self)
-            self.get_filter(name=self.params['improcess']['filter'])
             self.params['improcess']['running'] = False
 
         if self.params['improcess']['mode'] == 'auto':
