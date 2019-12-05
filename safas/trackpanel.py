@@ -32,12 +32,10 @@ class TrackPanel(QMainWindow):
         self.show()
 
         self.action = 'pause'
-        self.click_start()
+    
+    def setup(self,):
         self.tracks = TrackLists(parent=self.parent)
-
-        # add shortcut for move to next frame
-        self.next_frame_shortcut = QShortcut(QKeySequence("n"), self)
-        self.next_frame_shortcut.activated.connect(self.click_next)
+        self.click_start()
 
     def setup_view_panel(self):
         """ enable/disable NEW, OPEN,TRACKS"""
@@ -86,10 +84,10 @@ class TrackPanel(QMainWindow):
         cb3.mode = "manual"
         cb3.toggled.connect(self.mode_radio_clicked)
 
-        top_layout_2.addWidget(QLabel('auto'), 0, 4)
+        top_layout_2.addWidget(QLabel('find-next'), 0, 4)
         top_layout_2.addWidget(cb2, 0, 5)
         cb2.setChecked(False)
-        cb2.mode = "auto"
+        cb2.mode = "find-next"
         cb2.toggled.connect(self.mode_radio_clicked)
 
         top_layout_2.addWidget(QLabel('auto-step'), 0, 2)
@@ -221,7 +219,10 @@ class TrackLists(QMainWindow):
 
         self.lists = ['new', 'tracks', 'open', ]
         self.set_shortcuts()
-
+        self.current_track = None
+        self.current_new = None
+        self.current_open = None
+        
     def vis(self):
         self.show()
 
@@ -232,11 +233,14 @@ class TrackLists(QMainWindow):
         # add the new object as a new track
         self.newtrack_shortcut = QShortcut(QKeySequence("a"), self)
         self.newtrack_shortcut.activated.connect(self.transfer_new)
-
+        
+        # add then predict next for selected track
+        self.predictone_shortcut = QShortcut(QKeySequence("n"), self)
+        self.predictone_shortcut.activated.connect(self.parent.track_panel.click_next)
         lines = 'keyboard shortcuts:'
         lines += '\n"a" to add object from "new" list'
         lines += '\n"l" to link selected new and open objects'
-        lines += '\n"n" to link selected new and open objects'
+        lines += '\n"n" next frame'
 
         self.control_message = lines
         self.status_update_signal.emit(self.control_message)
@@ -269,27 +273,37 @@ class TrackLists(QMainWindow):
 
     def handle(self, **kwargs):
         """ step to take after image is filtered and labelled """
-        print('enter the handle from the stream')
-        print('update the new objects')
         self.list_new()
-        print('update the open objects')
         self.list_open()
 
         if self.parent.params['tracker_control']['mode'] == 'manual':
             self.status_update_signal.emit(self.control_message)
 
-        if self.parent.params['tracker_control']['mode'] == 'auto-multi':
+        if self.parent.params['tracker_control']['mode'] == 'find-next':
+            
             print('predict and link multiple objects through time series')
+            print('current selections:', self.current_track, self.current_open, self.current_new)
+            
             frame = self.parent.handler.contour_img
             index = self.parent.handler.frame_index
             tracker = self.parent.handler.tracker
-            print('track outline:', val_track)
-            val_new = self.parent.handler.tracker.predict_next(frame=frame,
-                                                               index=index,
-                                                               id_obj=val_track)
+            
+            if self.current_track is not None: 
+                print('track outline:', self.current_track)
+                
+                val_new = self.parent.handler.tracker.predict_next(frame=frame,
+                                                                   index=index,
+                                                                   id_obj=self.current_new)
+                print('val new in handle:', val_new)
 
-        if self.parent.params['tracker_control']['mode'] == 'auto-single':
-            print('predict and link single object through time series')
+     
+    def predict_one_next(self, **kwargs):
+        """ predict corresponding object in next frame """
+        
+        # keep open object of selected track
+        val_track, val_open, val_new = self.get_obj_pair(src='open')
+        print('current track is:', val_track, 'with open id:', val_open)
+       
 
     def list_new(self, **kwargs):
         """ on new frame, add new objects detected"""
@@ -307,22 +321,20 @@ class TrackLists(QMainWindow):
 
     def transfer_new(self, val=None, action='add', **kwargs):
         """  on double-click, or 'a' key, transfer object to track list """
+        val_track, val_open, val_new = self.get_obj_pair(src='open')
 
-        if self.parent.params['tracker_control']['mode'] == 'manual':
-            val_track, val_open, val_new = self.get_obj_pair(src='open')
+        if val_new is not None:
+             self.tracks.clear()
+            # add to list of tracked objects
+             frame_index = self.parent.handler.tracker.frame_index
+             self.parent.handler.tracker.add_object(frame_index, val_new)
+             number_tracks = self.parent.handler.tracker.n_tracks()
 
-            if val_new is not None:
-                 self.tracks.clear()
-                # add to list of tracked objects
-                 frame_index = self.parent.handler.tracker.frame_index
-                 self.parent.handler.tracker.add_object(frame_index, val_new)
-                 number_tracks = self.parent.handler.tracker.n_tracks()
+             if number_tracks is not None:
+                 self.tracks.addItems([str(v) for v in range(number_tracks)])
 
-                 if number_tracks is not None:
-                     self.tracks.addItems([str(v) for v in range(number_tracks)])
-
-                 qlist = self.new_objs
-                 qlist.takeItem(self.new_objs.currentRow())
+             qlist = self.new_objs
+             qlist.takeItem(self.new_objs.currentRow())
 
     def link_pair(self, **kwargs):
         """ link the selected objects in new and open lists """
@@ -335,6 +347,15 @@ class TrackLists(QMainWindow):
                                                         id_obj=val_track,
                                                         id_curr=val_new)
 
+        if self.parent.params['tracker_control']['mode'] == 'find-next':
+            val_track, val_open, val_new = self.get_obj_pair(src='open')
+            self.current_track = val_track
+            self.current_open = val_open
+            self.current_new = val_new 
+            print('in link pair track:', val_track, 'open:', val_open, 'new:', val_new)
+            self.parent.track_panel.click_next()
+            
+             
     def get_obj_pair(self, src='open'):
         """ retrieve selected objects in the new and open lists """
         val_new = self.new_objs.currentItem()
@@ -388,7 +409,12 @@ class TrackLists(QMainWindow):
 
         if val_track is not None:
             tracker.outline_track(frame.copy(), index, id_obj=val_track)
-
+        
+        self.current_track = val_track
+        self.current_open = val_open
+        self.current_new = val_new 
+        print('in outline track:', self.current_track, 'open:', self.current_open, 'new:', self.current_new)
+            
 
 def main(params=None, params_file=None):
     global app

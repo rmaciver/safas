@@ -69,6 +69,17 @@ def read_params(file):
     with open(file) as f:
         params = yaml.safe_load(f)
     return params
+
+def write_params(file, params):
+    """ write params to yaml file"""
+    
+     # cannot serialize '_io.TextIOWrapper' object
+    if 'readme' in params:
+        params.pop('readme')
+
+    with open(file, 'w') as file:
+        docs = yaml.dump(params, file)
+    
     
 def updatereadme(readme, lines):
     """

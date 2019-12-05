@@ -42,6 +42,7 @@ class Handler(QObject):
             self.parent = parent
             self.params = parent.params
             self.threadpool = parent.threadpool
+        
         if parent is None:
             self.params = params
 
@@ -57,11 +58,9 @@ class Handler(QObject):
         self.tracker = Tracker(parent=self)
 
         if self.params['improcess']['mode']  == 'trigger':
-            print('wait for trigger from TrackbarViewer')
             self.params['improcess']['running'] = False
 
         if self.params['improcess']['mode'] == 'auto':
-            print('images will be queued and processed')
             self.params['improcess']['running'] = True
 
     def open_vidreader(self):
@@ -78,8 +77,14 @@ class Handler(QObject):
         width  = int(self.cap.get(cv2.CAP_PROP_FRAME_WIDTH))  # float
         height = int(self.cap.get(cv2.CAP_PROP_FRAME_HEIGHT)) # float
         length = int(self.cap.get(cv2.CAP_PROP_FRAME_COUNT))
+        
+        # may want to allow user to override fps if not correct in video header
         fps = int(self.cap.get(cv2.CAP_PROP_FPS))
-
+        
+        # update params 
+        self.params['improcess']['fps'] = fps
+        self.params['improcess']['img_dim'] = [height, width, length]
+        
         self.fps = fps
         self.size = (width, height, length)
 

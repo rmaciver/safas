@@ -18,8 +18,8 @@ gui.py
 import os
 import sys
 
-sys.path.append(r'C:\Users\Ryan\Desktop\camera_setup\safas-dev')
-params_path = r'C:\Users\Ryan\Desktop\camera_setup\safas-dev\params'
+sys.path.append(r'C:\Users\Ryan\Desktop\src\safas-dev')
+params_path = r'C:\Users\Ryan\Desktop\src\safas-dev\params'
 
 import time
 import cv2
@@ -187,25 +187,23 @@ class Gui(QMainWindow):
 
     @pyqtSlot(QAction)
     def file_select_clicked(self, action):
-        params = self.stream.params
-
+  
         val = action.text()
         tx = self.file_status['input'].text()
 
         if val == 'directory':
             file = str(QFileDialog.getExistingDirectory(self, "select Directory", tx))
-            params['input'] = file
+            self.stream.params['input'] = file
 
         if val == 'file':
             file = QFileDialog.getOpenFileName(self, "open file", tx, "image Files (*.avi *.mp4 *.png *.jpg *.tif *.bmp)")
-            params['input'] = file[0]
-
-        if self.params['input'] != 0:
-            self.file_status['input'].setText(params['input'])
-            self.buttons['process'].setEnabled(True)
-
-        #self.update_io()
-
+            self.stream.params['input'] = file[0]
+ 
+        if self.stream.params['input'] != 0:
+            self.file_status['input'].setText(self.stream.params['input'])
+            self.buttons['view'].setEnabled(True)
+            self.update_params_status()
+ 
     @pyqtSlot(QAction)
     def setup_output(self, action):
         val = action.text()
@@ -220,9 +218,6 @@ class Gui(QMainWindow):
                 text = str(text)
                 text = text.replace(' ', '_')
                 self.config.set_output(dir_name=text)
-
-        #self.update_io()
-        #self.update_params()
 
     def update_status(self, line):
         self.stream_status.setText(line)

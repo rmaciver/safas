@@ -89,3 +89,25 @@ def brightmudflocs():
         brightmudflocs image.
     """
     return _load("brightmudflocs.png")
+
+def clearfloc():
+    """Gray-level "clearfloc" image.
+    Example image of a single mud floc with a clear background.
+
+    Returns
+    -------
+    camera : (512, 512, 3) uint8 ndarray
+        clearfloc image.
+    """
+    return _load("clearfloc.png")
+
+def noisyfloc():
+    """Gray-level "noisyfloc" image.
+    Example image of a single mud floc with a noisy background.
+
+    Returns
+    -------
+    camera : (512, 512, 3) uint8 ndarray
+        noisyfloc image.
+    """
+    return _load("noisyfloc.png")

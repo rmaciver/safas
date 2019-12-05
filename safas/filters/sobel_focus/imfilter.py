@@ -21,6 +21,18 @@ from safas.filters.imfilters_module import (focus_filter,
                                            clearedge_filter,
                                            add_contours)
 
+# 2 dict to setup the GUI control
+define_args = {'img_thresh': [np.int, [0, 255]],
+               'edge_thresh': [np.int, [0, 255]],
+               'apply_focus_filter': [np.bool, [True, False]],
+               'apply_clearedge_filter': [np.bool, [True, False]],}
+
+
+# 3 must have a setup function. keep pattern as some filters require setup.
+def setup():
+    return None
+
+
 def imfilter(src,
             img_thresh=100,
             edge_thresh=40,
@@ -50,14 +62,14 @@ if __name__ == '__main__':
     import matplotlib.pyplot as plt
     from safas import data
 
-    params = {'img_thresh': 40,
-               'edge_thresh': 70,
+    params = {'img_thresh': 150,
+               'edge_thresh': 30,
                'edge_distance': 1,
                'apply_focus_filter': True,
                'apply_clearedge_filter': True,
                }
 
-    img = data.clayflocs()
+    img = data.brightmudflocs()
     
     labels, contour_img = imfilter(img, **params)
     f, ax = plt.subplots(1,2, dpi=250)

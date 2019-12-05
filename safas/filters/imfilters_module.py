@@ -47,10 +47,7 @@ def perim_filter(labels, grad, edge_thresh=30, edge_dist=5, **kwargs):
     # convet to bool for & operation
     perimb = perim > 0
     gradb = grad > 0
-    
-    print('perimb:', perimb.shape)
-    print('gradb:', gradb.shape)
-    
+
     fmask = perimb & gradb
     
     # erode flood mask to remove marginally focused 
@@ -104,7 +101,7 @@ def prethresh_filter(img, img_thresh=90, **kwargs):
 
 
 
-def adapt_prethresh_filter(img, block_size=11, **kwargs):
+def adapt_prethresh_filter(img, block_size=3, **kwargs):
     """ convert to grayscale, gaussian blur, apply threshold, label
     
     ** note: THRESH_BINARY_INV for dark objects in bright field **
@@ -117,10 +114,30 @@ def adapt_prethresh_filter(img, block_size=11, **kwargs):
         img2 = img.copy()
         
     img2 = cv2.GaussianBlur(img2, (3, 3), 0)
-    # apply a threshold value to convert grayscale image to binary image
-    thresh = cv2.adaptiveThreshold(img2, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
-            cv2.THRESH_BINARY_IND, block_size, 2)
+    thresh = cv2.adaptiveThreshold(img2.copy(), 
+                                   255, 
+                                   cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
+                                   cv2.THRESH_BINARY_INV, 
+                                   block_size,
+                                   2)
  
+    return (thresh, img2)
+
+def grad_prethresh_filter(img,  **kwargs):
+    """ convert to grayscale, gaussian blur, apply threshold, label
+    
+    ** note: THRESH_BINARY_INV for dark objects in bright field **
+    
+    """
+    # convert to grayscale and de-noise with gaussian blur
+    if img.ndim == 3:
+        img2 = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    if img.ndim == 2:
+        img2 = img.copy()
+        
+    img2 = cv2.GaussianBlur(img2, (3, 3), 0)
+    
+    
     return (thresh, img2)
 
 def marker_based_watershed(img, thresh, dist_factor=0, **kwargs):
@@ -165,7 +182,42 @@ def add_contours(img, labels, contour_color, **kwargs):
 
     return contourimg
 
+def nn_perim_filter(labels, grad, **kwargs):
+    """ remove out of focus flocs by combining labels and gradient images 
+    
+    ** does not seem to perform well for lower extent flocs **
+    
+    """
+    perim = np.zeros_like(labels, dtype=np.uint8)
+    perim[labels > 0] = 255
+    kernel = np.ones((edge_dist, edge_dist), np.uint8)
+    erosion = perim.copy()
+    erosion = cv2.erode(erosion, kernel, iterations=1)
+    perim -= erosion
+    
+    # convet to bool for & operation
+    perimb = perim > 0
+    gradb = grad > 0
+    
+    print('perimb:', perimb.shape)
+    print('gradb:', gradb.shape)
+    
+    fmask = perimb & gradb
+    
+    # erode flood mask to remove marginally focused 
+    kernel = np.ones((2, 2), np.uint8)
+    fmask_er = fmask.astype(np.uint8).copy()*255
+    fmask_er = cv2.morphologyEx(fmask_er, cv2.MORPH_OPEN, kernel)
+    
+    P = regionprops(labels)
+    out = np.zeros_like(labels, np.uint8)
+    
+    for p in P:
+        xy = p.coords
+        if fmask[xy[:,0], xy[:,1]].any():
+            out[xy[:,0], xy[:,1]] = p.label
 
+    return out
 
     
 if __name__ =='__main__':

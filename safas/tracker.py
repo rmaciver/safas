@@ -9,6 +9,7 @@ from glob import glob
 from itertools import cycle
 import collections
 import importlib
+import yaml
 
 import numpy as np
 import skimage
@@ -28,12 +29,11 @@ import pandas as pd
 import cv2
 
 from safas.matcher import Matcher
-
+from safas.config import write_params, set_dirout
 """
 
 """
-
-keys = ['area', 
+KEYS = ['area', 
         'equivalent_diameter', 
         'perimeter', 
         'euler_number',  
@@ -48,12 +48,15 @@ class Tracker(QObject):
         super(Tracker, self).__init__(*args, **kwargs)
 
         if parent is None:
+            print('parent is None')
             self.params = params
-
+            self.parent = parent
+            
         if parent is not None:
+            print('parent is not None')
             self.parent = parent
             self.params = parent.params
-
+        
         self.frames = collections.OrderedDict()
         self.tracks = {'id': collections.OrderedDict(),
                        'frame': collections.OrderedDict()}
@@ -125,7 +128,8 @@ class Tracker(QObject):
         vals = {'frame_index': frame_index,
                 'id_curr': id_curr,
                 'centroid': prop.centroid,
-                'prop': prop}
+                'prop': prop, 
+                'velocity': None}
 
         self.tracks['id'][id_obj] = [vals]
 
@@ -160,7 +164,10 @@ class Tracker(QObject):
         props = self.frames[index]['props']
         M = Matcher(self.tracks['id'])
         p1 = M.rank_and_match()
-
+        
+        print('rand and match output:', p1)
+        return p1
+    
     def outline_pair(self, frame, index, val_open=None, val_new=None, **kwargs):
         """ outline the selected new and open objects """
         if val_new is not None:
@@ -220,19 +227,53 @@ class Tracker(QObject):
         plt.tight_layout()
         
     def save(self):
-
-        # dump the tracks into pandas file
+        
+        # update the velocity if more than one object in track
+        self.cal_vel()
+        
+        # save tracks to pandas file
         tracks = self.tracks['id']
     
-        # take the first instance in each track list
+        # take the first object in each track list
         if self.params['output'] == 0:
-            self.parent.parent.set_output()
-        
+            if self.parent is None: 
+                print('parent is:', self.parent)
+                self.params = set_dirout(params=self.params)
+                print(self.parent is None)
+                
+            else: 
+                print('parent is:', self.parent)
+                self.parent.parent.set_output()
+                
         dirout = self.params['dirout']
-        print(tracks)
+        
         # use 0 index to get first on list
-        P = [tracks[t][0]['prop'] for t in tracks]    
-        T = [ {ky: prop[ky] for ky in keys} for prop in P]
+        T = []
+        pxcal = self.params['improcess']['pixel_size']
+        
+        for t in tracks: 
+            tk = tracks[t][0]
+            pk = {}
+            for ky in KEYS:
+                # calculate metric vals with pxcal
+                if ky == 'area':
+                    pk[ky] = tk['prop'][ky]*pxcal**2
+                
+                elif ky in ['equivalent_diameter', 
+                          'perimeter', 
+                          'minor_axis_length', 
+                          'major_axis_length']:
+                    
+                    pk[ky] = tk['prop'][ky]*pxcal
+                else: 
+                    pk[ky] = tk['prop'][ky]
+   
+            if 'vel_mean' in tk:
+                pk['vel_mean'] = tk['vel_mean']
+                pk['vel_N'] = tk['vel_N']
+                pk['vel_std'] = tk['vel_std']
+            T.append(pk)
+
         df = pd.DataFrame(T)
         
         # check existing files in dir_out/data
@@ -241,29 +282,52 @@ class Tracker(QObject):
         fname = os.path.join(dirout,'data', name)
         # write to excel file
         df.to_excel(fname)
-    
+        
+        # also save the params as a yaml
+        name = name = 'exp_params_%d.yml' % (val + 1)
+        yname = os.path.join(dirout,'params', name)
+        params = self.params
+        write_params(file=yname, params=params)
+        
     def cal_vel(self,):
         """ cal velocity from a series of centroids """
-        print('frame rate:', self.parent.fps)
+        # calculated before saving for now. may move to "live" location.
+        print('frame rate:', self.params['improcess']['fps'])
         
-        dt = 1/self.parent.fps
+        dt = 1/self.params['improcess']['fps']
         
         for i in self.tracks['id']:
             track = self.tracks['id'][i]
+            
             if len(track) > 1:
                 print('try to cal displacement')
-                cents = [t['centroid'] for t in track]
+                cents = np.array([t['centroid'] for t in track])
                 print('total cents:', len(cents))
-                disp = np.diff(cents, axis=0)
-                print('displacement:', disp)
+                #disp = np.diff(cents, axis=0)
+                #print('displacement:', disp)
                  
-                vals = []
-                for i in range(len(disp)-1):        
-                    dist = np.linalg.norm(disp[(i+1),:]-disp[i,:])
-                    vals.append(dist)
-                    
-            # where to put these values then....back into the dict
-            
+                disp = []
+                for i in range(len(cents)-1):        
+                    dist = np.linalg.norm(cents[(i+1)]-cents[i])
+                    disp.append(dist) 
+                
+                print('update first instance with the cal')
+                disp_metric = np.array(disp)*self.params['improcess']['pixel_size']/10**4 # in CM
+                v = disp_metric/dt
+                N = len(v)
+                v_mean = np.mean(v)
+                v_std = np.std(v)
+             
+                print('put velocity info back into dict')
+                # convert to metric
+                track[0]['vel_mean'] = v_mean
+                track[0]['vel_std'] = v_std
+                track[0]['vel_N'] = N
+                
+                print('put back into self.tracks in first object')
+                self.tracks['id'][i] = track
+        
+        
 def test_img():
     img = np.zeros((1000,1000))
     img[100:200, 100:200] = 255
@@ -274,16 +338,26 @@ def test_img():
 
 if __name__ == '__main__':
     print('test the tracker')
-    contours = [np.array([[1,1],[10,50],[50,50]], dtype=np.int32) , np.array([[99,99],[99,60],[60,99]], dtype=np.int32)]
-
+    
     t = test_img()
-    T = Tracker()
+    
+    params = {'improcess': {'fps': 25},
+              'baseout': 'C:/Users/Ryan/Desktop/Data/pro',
+              'output': 0,
+              }
+    
+    # test calc vel and writing
+    T = Tracker(parent=None, params=params)
+    T.add_frame(frame=t, frame_index=1)
+    T.add_object(frame_index=1, id_curr=1) 
+    T.add_frame(frame=t, frame_index=2)
+    T.update_object_track(frame_index=2, id_obj=0, id_curr=2)
+    T.save()
 
-    T.add_frame(frame=t, frame_index=200)
-    T.add_all_objects()
 
-    frame = np.zeros((1000,1000,3))
-    contourimg = cv2.drawContours(frame, contours, -1, (255, 0, 0), 3)
 
-    T.display_frame_signal.connect(T.display_test)
-    T.overlay_single(frame=frame, index=200, val=1)
+    
+#    frame = np.zeros((1000,1000,3))
+#    contours = [np.array([[1,1],[10,50],[50,50]], dtype=np.int32) , np.array([[99,99],[99,60],[60,99]], dtype=np.int32)]
+#    contourimg = cv2.drawContours(frame, contours, -1, (255, 0, 0), 3)
+

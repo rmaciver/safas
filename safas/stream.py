@@ -66,6 +66,7 @@ class Stream(QObject):
 
     def update_resource_path(self, **kwargs):
         self.res_path = Path(os.path.realpath(__file__)).parents[0]
+        print('res path:', self.res_path)
         self.params_path = os.path.join(self.res_path, 'params')
         print('resource path:', self.res_path)
 
@@ -109,7 +110,8 @@ class Stream(QObject):
     def track(self):
         """ track in GUI or headless mode """
         self.track_panel = TrackPanel(parent=self)
-
+        self.track_panel.setup() # add the TrackLists in this step to access Stream 
+        
         # connect TrackPanel and Tracks objects to status box in main gui
         self.track_panel.status_update_signal.connect(self.parent.update_status)
         self.track_panel.tracks.status_update_signal.connect(self.parent.update_status)

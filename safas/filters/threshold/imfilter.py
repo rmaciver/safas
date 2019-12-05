@@ -24,6 +24,11 @@ from safas.filters.imfilters_module import (marker_based_watershed,
                                            focus_filter,
                                            add_contours)
 
+# 3 must have a setup function. keep pattern as some filters require setup.
+def setup():
+    return None
+
+
 def imfilter(src,
             img_thresh=100,
             edge_thresh=40,
