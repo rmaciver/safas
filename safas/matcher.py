@@ -18,25 +18,32 @@ KEYS = ['area',
 
 class Matcher():
 
-    def __init__(self, p0=None, props=None, params=None, **kwargs): 
+    def __init__(self, p0=None, props=None, criteria=None, params=None, **kwargs): 
         """
         track_data: identified (+) instances of the object
         props: regionprops info for current image
         """
-        self.params = params
-        self.track_data = track_data
-        
-        self.err_max = 10e7
+        self.p0 = p0
+        self.props = props
+        self.params = params      
+        self.err_thresh = 10e7
         self.dist_thresh = 500
-        self.criteria = {'props': 1, 'disp': 1, 'vel': 1}
+
+        if criteria is not None:
+            self.criteria = criteria
+        else:
+            self.criteria = {'props': 1, 'disp': 1, 'vel': 1}
+        
         self.obj0 = None
     
     def rank_and_match(self):
         self.rank()
         self.match()
+        
         if self.obj0 is not None: 
-            return self.obj0
             print('found a match')
+            return self.obj0
+            
         if self.obj0 is None: 
             print('no match found')
             return None
@@ -48,27 +55,31 @@ class Matcher():
         p0 = self.p0
         props = self.props            
         
-        err = np.arange(len(props))
+        print('setup array for error values')
+        err = np.full(len(props), 0, dtype=np.float64)
         
         if 'props' in self.criteria:
+            print('compare props')
             props_err = props_err(p0, props)
             err += props_err*self.criteria['props']
             
         if 'dist' in self.criteria:
+            print('calculate distances')
             dist = cal_dist(p0, props)
-            err += props_err*self.criteria['props']
+            err += dist*self.criteria['dist']
         
         if 'vel' in self.criteria:
             print('compare velocity and direction')
         
         self.err = err
     
-    def best_match(self):
+    def match(self):
         """ one match is returned now. later, return a ranking and allow
             corretion by user.
             match only returned if below a max value
         """
         index = np.argmin(self.err)
+        
         if self.err[index] < self.err_thresh: 
             self.obj0 = index
         else:
@@ -77,6 +88,7 @@ class Matcher():
 def cal_dist(p0, props):
     dist = np.array([p.centroid for p in props]) - p0.centroid
     dist = np.linalg.norm(dist, axis=1)
+    dist = dist.astype(np.float64)
     return dist
 
 def dist_err(dist):

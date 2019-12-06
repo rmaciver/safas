@@ -31,7 +31,7 @@ define_args = {'img_thresh': [np.int, [0, 255]],
 def setup():
     return None
 
-# 4 function must have imfilter. 
+# 4 function must have imfilter.
 def imfilter(src,
             edge_thresh=40,
             block_size=50,
@@ -39,22 +39,11 @@ def imfilter(src,
             apply_clearedge_filter=True,
             contour_color=(0,255,0),
             **kwargs):
-    
+
     # apply a threshold value to convert grayscale image to binary image
     thresh, gray = prethresh_filter(src.copy(), block_size=block_size)
     labels = cal_grad_img(src.copy(), edge_thresh=30)
     
-   # ret, labels = cv2.connectedComponents(thresh)
-    
-#    if apply_focus_filter:
-#       labels = focus_filter(labels, gray, edge_thresh)
-#
-#    if apply_clearedge_filter:
-#        labels = clearedge_filter(labels)
-#
-#    # add the contour image
-#    contour_img = add_contours(src.copy(), labels, contour_color=[255,0,0])
-#    
     return (labels, thresh)
 
 if __name__ == '__main__':
@@ -71,9 +60,9 @@ if __name__ == '__main__':
                }
 
     img = data.brightmudflocs()
-    
+
     labels, contour_img = imfilter(img, **params)
     f, ax = plt.subplots(1,2, dpi=250)
-    
+
     ax[0].imshow(labels)
     ax[1].imshow(contour_img)

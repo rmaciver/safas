@@ -159,38 +159,59 @@ class Tracker(QObject):
 
     def predict_next(self, frame, index, id_obj, **kwargs):
         """ """
-
-        p0 = self.tracks['id'][id_obj][-1]['prop'] # most recent one added
-        props = self.frames[index]['props']
-        M = Matcher(self.tracks['id'])
-        p1 = M.rank_and_match()
+        # an easy way to terminate need to terminate after certain length.... 5?
         
-        print('rand and match output:', p1)
-        return p1
-    
+        print('max track len:', self.params['improcess']['max_track_len'])
+        maxobjs = self.params['improcess']['max_track_len']
+     
+        # maxobjs = 100 # override limit
+        
+        if len(self.tracks['id'][id_obj]) < maxobjs:
+        
+            p0 = self.tracks['id'][id_obj][-1]['prop'] # most recent one added
+            
+            val_open = self.tracks['id'][id_obj][-1]['id_curr']
+            
+            props = self.frames[index]['props']
+            
+            M = Matcher(p0=p0, props=props, criteria={'dist': 1})
+            
+            p1 = M.rank_and_match()
+        
+            print('rank and match output:', p1)
+            return (p1, val_open)
+        else: 
+            return (None, None)
+        
     def outline_pair(self, frame, index, val_open=None, val_new=None, **kwargs):
         """ outline the selected new and open objects """
+        print('values in outline pair:', val_open, val_new)
         if val_new is not None:
             frame, index = self.outline_single_new(frame, index, val_new)
         if val_open is not None:
             frame, index = self.outline_single_open(frame, index, val_open)
-
+        
+        print('emitting the new outline...')
         self.display_frame_signal.emit(frame, index)
   
     def outline_single_new(self, frame, index, val, **kwargs):
         """ make image to be displayed in window for user interaction"""
         #contours, hierarchy = cv2.findContours(thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+        
         coords = self.frames[index]['props'][val].coords
         frame[coords[:,0], coords[:,1]] = [0, 0, 255] # red
+        print('returning single new')
         return (frame, index)
 
     def outline_single_open(self, frame, index, val, **kwargs):
         """ make image to be displayed in window for user interaction"""
         index -= 1
-
+        
         if index in self.frames:
+            print('index in self.frames, single_open')
             coords = self.frames[index]['props'][val].coords
             frame[coords[:,0], coords[:,1]] = [255, 0, 0] # blue
+            print('returning open')
             return (frame, index)
         else:
             return None
@@ -199,13 +220,17 @@ class Tracker(QObject):
         """ overlay a single track when selected """
 #        print('outline in the tracker')
         overlay_t = np.zeros_like(frame, dtype=np.uint8)
-        alpha = 0.9
         
-        for track in self.tracks['id'][id_obj]:
-#            print('track is:', track, track['prop'])
-            xy = track['prop'].coords
-            alpha = alpha*0.9
-            overlay_t[xy[:,0], xy[:,1]] = [70, 255, 50]
+        if type(id_obj) == int:
+            id_obj = [id_obj]
+            
+        for id_o in id_obj:
+            alpha = 0.9
+            for track in self.tracks['id'][id_o]:
+    #            print('track is:', track, track['prop'])
+                xy = track['prop'].coords
+                alpha = alpha*0.9
+                overlay_t[xy[:,0], xy[:,1]] = [70, 255, 50]
 
         frame = cv2.addWeighted(frame, 1, overlay_t, alpha, 0)
         self.display_frame_signal.emit(frame, index)
@@ -233,21 +258,18 @@ class Tracker(QObject):
         
         # save tracks to pandas file
         tracks = self.tracks['id']
-    
+        
+        
         # take the first object in each track list
         if self.params['output'] == 0:
             if self.parent is None: 
-                print('parent is:', self.parent)
                 self.params = set_dirout(params=self.params)
-                print(self.parent is None)
-                
             else: 
-                print('parent is:', self.parent)
                 self.parent.parent.set_output()
                 
         dirout = self.params['dirout']
-        
-        # use 0 index to get first on list
+        print('output is:', dirout)
+
         T = []
         pxcal = self.params['improcess']['pixel_size']
         
@@ -273,7 +295,8 @@ class Tracker(QObject):
                 pk['vel_N'] = tk['vel_N']
                 pk['vel_std'] = tk['vel_std']
             T.append(pk)
-
+        
+        print('len T:', len(T))
         df = pd.DataFrame(T)
         
         # check existing files in dir_out/data
@@ -290,29 +313,32 @@ class Tracker(QObject):
         write_params(file=yname, params=params)
         
     def cal_vel(self,):
-        """ cal velocity from a series of centroids """
+        """ cal velocity from a series of centroids 
+        
+        note: assumption is that centroids occur in sequential frames 
+        
+        """
         # calculated before saving for now. may move to "live" location.
+        # note: mechanism to detected when the frames are not sequential
+        #       i.e. if object is detected in frame 1 and 3, then velocity
+        #            will appear to be double the actual value
         print('frame rate:', self.params['improcess']['fps'])
         
         dt = 1/self.params['improcess']['fps']
         
+        T = {}
         for i in self.tracks['id']:
             track = self.tracks['id'][i]
             
             if len(track) > 1:
-                print('try to cal displacement')
                 cents = np.array([t['centroid'] for t in track])
-                print('total cents:', len(cents))
-                #disp = np.diff(cents, axis=0)
-                #print('displacement:', disp)
-                 
                 disp = []
-                for i in range(len(cents)-1):        
-                    dist = np.linalg.norm(cents[(i+1)]-cents[i])
+                for k in range(len(cents)-1):        
+                    dist = np.linalg.norm(cents[(k+1)]-cents[k])
                     disp.append(dist) 
                 
                 print('update first instance with the cal')
-                disp_metric = np.array(disp)*self.params['improcess']['pixel_size']/10**4 # in CM
+                disp_metric = np.array(disp)*self.params['improcess']['pixel_size']/10**3 # in CM
                 v = disp_metric/dt
                 N = len(v)
                 v_mean = np.mean(v)
@@ -325,8 +351,11 @@ class Tracker(QObject):
                 track[0]['vel_N'] = N
                 
                 print('put back into self.tracks in first object')
-                self.tracks['id'][i] = track
-        
+                T[i] = track
+         
+        print('self.tracks:', len(self.tracks['id']))
+        self.tracks['id'] = T
+        print('self.tracks:', len(self.tracks['id']))
         
 def test_img():
     img = np.zeros((1000,1000))

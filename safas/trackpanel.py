@@ -46,25 +46,13 @@ class TrackPanel(QMainWindow):
         cb1 = QCheckBox()  # new
         cb2 = QCheckBox()  # open
         cb3 = QCheckBox() # tracks
-
-        top_layout_2.addWidget(QLabel('tracks'), 0, 0)
+        
+        top_layout_2.addWidget(QLabel('all-tracks'), 0, 0)
         top_layout_2.addWidget(cb3, 0, 1)
         cb3.toggled.connect(self.view_box_clicked)
-        cb3.view = "tracks"
+        cb3.view = "all-tracks"
         cb3.setChecked(True)
-
-        top_layout_2.addWidget(QLabel('open'), 0, 2)
-        top_layout_2.addWidget(cb2, 0,3)
-        cb2.toggled.connect(self.view_box_clicked)
-        cb2.view = "open"
-        cb2.setChecked(False)
-
-        top_layout_2.addWidget(QLabel('new'), 0, 4)
-        top_layout_2.addWidget(cb1, 0,5)
-        cb1.toggled.connect(self.view_box_clicked)
-        cb1.view = "new"
-        cb1.setChecked(True)
-
+        
         ctrl_groupbox.setLayout(top_layout_2)
         self.layout.addWidget(ctrl_groupbox, 1, 2)
 
@@ -84,16 +72,16 @@ class TrackPanel(QMainWindow):
         cb3.mode = "manual"
         cb3.toggled.connect(self.mode_radio_clicked)
 
-        top_layout_2.addWidget(QLabel('find-next'), 0, 4)
+        top_layout_2.addWidget(QLabel('find-one'), 0, 4)
         top_layout_2.addWidget(cb2, 0, 5)
         cb2.setChecked(False)
-        cb2.mode = "find-next"
+        cb2.mode = "find-one"
         cb2.toggled.connect(self.mode_radio_clicked)
 
-        top_layout_2.addWidget(QLabel('auto-step'), 0, 2)
+        top_layout_2.addWidget(QLabel('find-all'), 0, 2)
         top_layout_2.addWidget(cb1, 0, 3)
         cb1.setChecked(False)
-        cb1.mode = "auto-step"
+        cb1.mode = "find-all"
         cb1.toggled.connect(self.mode_radio_clicked)
 
         ctrl_groupbox.setLayout(top_layout_2)
@@ -237,6 +225,7 @@ class TrackLists(QMainWindow):
         # add then predict next for selected track
         self.predictone_shortcut = QShortcut(QKeySequence("n"), self)
         self.predictone_shortcut.activated.connect(self.parent.track_panel.click_next)
+        
         lines = 'keyboard shortcuts:'
         lines += '\n"a" to add object from "new" list'
         lines += '\n"l" to link selected new and open objects'
@@ -275,35 +264,60 @@ class TrackLists(QMainWindow):
         """ step to take after image is filtered and labelled """
         self.list_new()
         self.list_open()
-
+        
+        frame = self.parent.handler.contour_img
+        index = self.parent.handler.frame_index
+        tracker = self.parent.handler.tracker
+            
         if self.parent.params['tracker_control']['mode'] == 'manual':
             self.status_update_signal.emit(self.control_message)
 
-        if self.parent.params['tracker_control']['mode'] == 'find-next':
-            
-            print('predict and link multiple objects through time series')
-            print('current selections:', self.current_track, self.current_open, self.current_new)
-            
-            frame = self.parent.handler.contour_img
-            index = self.parent.handler.frame_index
-            tracker = self.parent.handler.tracker
+        if self.parent.params['tracker_control']['mode'] == 'find-one':
             
             if self.current_track is not None: 
-                print('track outline:', self.current_track)
-                
-                val_new = self.parent.handler.tracker.predict_next(frame=frame,
+                val_new, val_open = self.parent.handler.tracker.predict_next(frame=frame,
                                                                    index=index,
-                                                                   id_obj=self.current_new)
-                print('val new in handle:', val_new)
-
-     
-    def predict_one_next(self, **kwargs):
-        """ predict corresponding object in next frame """
-        
-        # keep open object of selected track
-        val_track, val_open, val_new = self.get_obj_pair(src='open')
-        print('current track is:', val_track, 'with open id:', val_open)
-       
+                                                                   id_obj=self.current_track)
+                
+                if val_new is not None: 
+                    a = self.open_objs.findItems(str(val_open), Qt.MatchExactly)
+                    b = self.new_objs.findItems(str(val_new), Qt.MatchExactly)
+                    c = self.tracks.findItems(str(self.current_track), Qt.MatchExactly)
+                    
+                    if len(a) > 0:
+                        self.open_objs.setCurrentItem(a[0])
+                    if len(b) > 0:
+                        self.new_objs.setCurrentItem(b[0])
+                    
+                    self.tracks.setCurrentItem(c[0])
+                    self.outline_pair(val=None, 
+                                      update_vals=False, 
+                                      val_new=val_new, 
+                                      val_open=val_open)
+                    self.new_objs.setFocus()
+                    self.status_update_signal.emit('finished matching')
+                    
+        if self.parent.params['tracker_control']['mode'] == 'find-all':
+            """ find best match for each object added to track list """
+            
+            # try to match open with new, link automatically
+            if len(tracker.tracks['id']) > 0: 
+                for val_track in tracker.tracks['id']:
+                    
+                    print('track_val:', val_track)
+                    
+                    val_new, val_open = self.parent.handler.tracker.predict_next(frame=frame,
+                                                                           index=index,
+                                                                           id_obj=val_track)
+                    print('vals are:', val_new, val_open)
+                    if val_new is not None: 
+                        # will skip the obj if not found or beyond max length
+                        tracker.update_object_track(index, id_obj=val_track, id_curr=val_new)
+                        print('updated:', val_track)
+            
+                self.status_update_signal.emit('finished matching')
+            else: 
+                self.status_update_signal.emit('no objects to track')
 
     def list_new(self, **kwargs):
         """ on new frame, add new objects detected"""
@@ -347,15 +361,13 @@ class TrackLists(QMainWindow):
                                                         id_obj=val_track,
                                                         id_curr=val_new)
 
-        if self.parent.params['tracker_control']['mode'] == 'find-next':
+        if self.parent.params['tracker_control']['mode'] == 'find-one':
             val_track, val_open, val_new = self.get_obj_pair(src='open')
             self.current_track = val_track
             self.current_open = val_open
             self.current_new = val_new 
-            print('in link pair track:', val_track, 'open:', val_open, 'new:', val_new)
             self.parent.track_panel.click_next()
             
-             
     def get_obj_pair(self, src='open'):
         """ retrieve selected objects in the new and open lists """
         val_new = self.new_objs.currentItem()
@@ -385,14 +397,15 @@ class TrackLists(QMainWindow):
 
         return (val_track, val_open, val_new)
 
-    def outline_pair(self, val,  **kwargs):
+    def outline_pair(self, val, update_vals=True, val_new=None, val_open=None, **kwargs):
         """ outline a single new and open object highlight to user for linking """
-        val_track, val_open, val_new = self.get_obj_pair(src='open')
-
+        if update_vals: 
+            val_track, val_open, val_new = self.get_obj_pair(src='open')
+        
         frame = self.parent.handler.contour_img
         index = self.parent.handler.frame_index
         tracker = self.parent.handler.tracker
-
+        
         if (val_open is not None) or (val_new is not None):
             tracker.outline_pair(frame.copy(),
                                  index,
@@ -400,21 +413,25 @@ class TrackLists(QMainWindow):
                                  val_open=val_open)
 
     def outline_track(self, **kwargs):
-        """ highlight a single track when selected in tracks list box"""
+        """ highlight a single track when selected in tracks list box """
         val_track, val_open, val_new = self.get_obj_pair(src='tracks')
-
+     
         frame = self.parent.handler.contour_img
         index = self.parent.handler.frame_index
         tracker = self.parent.handler.tracker
-
-        if val_track is not None:
-            tracker.outline_track(frame.copy(), index, id_obj=val_track)
         
+        if self.parent.params['tracker_control']['views']:
+            val_track_out = list(tracker.tracks['id'])
+        else:
+            val_track_out = val_track
+            
+        tracker.outline_track(frame.copy(), index, id_obj=val_track_out)
+                
         self.current_track = val_track
         self.current_open = val_open
         self.current_new = val_new 
         print('in outline track:', self.current_track, 'open:', self.current_open, 'new:', self.current_new)
-            
+        
 
 def main(params=None, params_file=None):
     global app

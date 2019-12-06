@@ -20,6 +20,7 @@ improcess:
   pixel_size: 8.6 # microns
   vid_dim: None   # dimensions of image. [height, width, length]
   filter: sobel_focus
+  max_track_len: 50
   kwargs:
     pre_filter: True
     focus_filter: False
