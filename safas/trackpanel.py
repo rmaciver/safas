@@ -9,6 +9,8 @@ from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
 
+from safas.paramsdialog import ParamsDialog
+
 class TrackPanel(QMainWindow):
 
     status_update_signal = pyqtSignal(str, name="status_update_signal")
@@ -66,20 +68,23 @@ class TrackPanel(QMainWindow):
         cb2 = QRadioButton()  # open
         cb3 = QRadioButton() # tracks
 
-        top_layout_2.addWidget(QLabel('manual'), 0, 0)
-        top_layout_2.addWidget(cb3, 0, 1)
+        
+        top_layout_2.addWidget(cb3, 0, 0)
+        top_layout_2.addWidget(QLabel('manual'), 0, 1)
         cb3.setChecked(True)
         cb3.mode = "manual"
         cb3.toggled.connect(self.mode_radio_clicked)
 
-        top_layout_2.addWidget(QLabel('find-one'), 0, 4)
-        top_layout_2.addWidget(cb2, 0, 5)
+        
+        top_layout_2.addWidget(cb2, 0, 4)
+        top_layout_2.addWidget(QLabel('find-one'), 0, 5)
         cb2.setChecked(False)
         cb2.mode = "find-one"
         cb2.toggled.connect(self.mode_radio_clicked)
 
-        top_layout_2.addWidget(QLabel('find-all'), 0, 2)
-        top_layout_2.addWidget(cb1, 0, 3)
+        
+        top_layout_2.addWidget(cb1, 0, 2)
+        top_layout_2.addWidget(QLabel('find-all'), 0, 3)
         cb1.setChecked(False)
         cb1.mode = "find-all"
         cb1.toggled.connect(self.mode_radio_clicked)
@@ -107,7 +112,7 @@ class TrackPanel(QMainWindow):
         ctrl_groupbox = QGroupBox('control')
 
         list_tracks = QPushButton('list', clicked=self.click_list_tracks)
-        refine = QPushButton('refine', clicked=self.click_refine)
+        params = QPushButton('params', clicked=self.click_params_dialog)
         start = QPushButton('start', clicked=self.click_start)
         pause = QPushButton('pause', clicked=self.click_pause)
         next_frame = QPushButton('next frame >', clicked=self.click_next)
@@ -117,7 +122,7 @@ class TrackPanel(QMainWindow):
         exit_track = QPushButton('exit', clicked=self.click_exit_track)
         help = QPushButton('help', clicked=self.get_help)
         top_layout_2.addWidget(list_tracks)
-        top_layout_2.addWidget(refine)
+        top_layout_2.addWidget(params)
         top_layout_2.addWidget(prev_frame)
         top_layout_2.addWidget(next_frame)
         top_layout_2.addWidget(start)
@@ -173,10 +178,26 @@ class TrackPanel(QMainWindow):
         """ reopens the list if closed"""
         self.tracks.vis()
 
-    def click_refine(self):
+    def click_params_dialog(self):
         """ """
-        self.action = 'refine'
-
+        print('filter is in the handler object')
+        imfilter = self.parent.handler.imfilter
+        print('pass filter to paramsdialog')
+        self.paramsdialog = ParamsDialog(imfilter=imfilter)
+        # connect signals before starting
+        self.paramsdialog.params_test_signal.connect(self.params_test)
+        self.paramsdialog.params_update_signal.connect(self.params_update)
+        
+        self.paramsdialog.setup()
+        
+    def params_test(self, params, **kwargs):    
+        H = self.parent.handler
+        H.get_frame(H.frame_index, mode='test', params=params)
+   
+    def params_update(self, params, **kwargs):
+        """ update params from user input """
+        self.parent.params['improcess']['kwargs'] = params
+ 
     def click_exit_track(self):
         """ """
         self.action = 'exit'

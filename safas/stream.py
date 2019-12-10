@@ -115,11 +115,13 @@ class Stream(QObject):
         # connect TrackPanel and Tracks objects to status box in main gui
         self.track_panel.status_update_signal.connect(self.parent.update_status)
         self.track_panel.tracks.status_update_signal.connect(self.parent.update_status)
-        self.track_panel.tracks.status_update_signal.connect(self.parent.update_status)
 
         # this is the main control point in the tracking display and user input
         self.handler.process_finished_signal.connect(self.track_panel.tracks.handle)
         self.handler.tracker.display_frame_signal.connect(self.viewer.update)
+        
+        # connect the params dialog signal to something
+        
         
     def stop(self):
        self.handler.stop()

@@ -95,22 +95,29 @@ class Handler(QObject):
             if self.cap.get(cv2.CAP_PROP_POS_FRAMES) >= self.size[2]:
                 break
 
-    def get_frame(self, index, **kwargs):
+    def get_frame(self, index, mode=None, params=None, **kwargs):
         """ viewer callback, manual mode """
         self.cap.set(cv2.CAP_PROP_POS_FRAMES, index)
         err, frame = self.cap.read()
         self.frame_index = index
-
-        if self.params['improcess']['running']:
-            label_frame, frame = self.filter(src=frame,
-                                             params=self.params['improcess']['kwargs'])
-            self.frame_count += 1
-            self.label_img = label_frame
-            self.contour_img = frame
-            self.tracker.add_frame(label_frame, index)
-            self.process_finished_signal.emit(1)
-
+        
+        if mode == 'test':
+            # do not add to the analysis
+            print('get_frame in params test mode')
+            print('params:', params)
+            label_frame, frame = self.imfilter(src=frame, **params)
+        else: 
+            if self.params['improcess']['running']:
+                label_frame, frame = self.imfilter(src=frame,
+                                                 **self.params['improcess']['kwargs'])
+                self.frame_count += 1
+                self.label_img = label_frame
+                self.contour_img = frame
+                self.tracker.add_frame(label_frame, index)
+                self.process_finished_signal.emit(1)
+    
         # emit either the raw or overlay image
+        print('emit the processed image')
         self.frame_signal.emit(frame, index)
 
     def set_process(self, **kwargs):
@@ -122,4 +129,5 @@ class Handler(QObject):
         """
         script = 'filters.' + name + '.imfilter'
         imfilter = importlib.import_module(script)
-        self.filter = imfilter.imfilter
+        self.imfilter = imfilter.imfilter
+        print('%s filter was loaded' % name)

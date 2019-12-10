@@ -40,7 +40,12 @@ def imfilter(src,
             apply_clearedge_filter=True,
             contour_color=(0,255,0),
             **kwargs):
-
+    
+    print('imfilter params...')
+    print('img_thresh:', img_thresh)
+    print('edge_thresh:', edge_thresh)
+    print('edge_dist:', edge_distance)
+    
     thresh, gray = prethresh_filter(src.copy(), img_thresh)
     ret, labels = cv2.connectedComponents(thresh)
 
