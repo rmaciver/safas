@@ -10,6 +10,7 @@ from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
 
 from safas.paramsdialog import ParamsDialog
+from safas.makeplot import MakePlot
 
 class TrackPanel(QMainWindow):
 
@@ -120,7 +121,7 @@ class TrackPanel(QMainWindow):
         save = QPushButton('save', clicked=self.click_save)
       
         exit_track = QPushButton('exit', clicked=self.click_exit_track)
-        help = QPushButton('help', clicked=self.get_help)
+        plot = QPushButton('plot', clicked=self.make_plot)
         top_layout_2.addWidget(list_tracks)
         top_layout_2.addWidget(params)
         top_layout_2.addWidget(prev_frame)
@@ -128,7 +129,7 @@ class TrackPanel(QMainWindow):
         top_layout_2.addWidget(start)
         top_layout_2.addWidget(pause)
         top_layout_2.addWidget(save)
-        top_layout_2.addWidget(help)
+        top_layout_2.addWidget(plot)
         top_layout_2.addWidget(exit_track)
         ctrl_groupbox.setLayout(top_layout_2)
         self.layout.addWidget(ctrl_groupbox, 1, 1)
@@ -178,6 +179,16 @@ class TrackPanel(QMainWindow):
         """ reopens the list if closed"""
         self.tracks.vis()
 
+    def make_plot(self): 
+        """ read the output and plot results in saved dataframe 
+        * must be at least one dataframe saved
+        """
+        
+        self.plotwin = MakePlot(parent=self, dirout=self.parent.params['dirout'])
+        # read 
+        
+        
+        
     def click_params_dialog(self):
         """ """
         print('filter is in the handler object')
