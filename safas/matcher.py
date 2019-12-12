@@ -1,9 +1,13 @@
 # -*- coding: utf-8 -*-
 """
 
--prediction for second frame includes only size, shape
--prediction for 3rd frame includes velocity 
-        
+Matcher compares position and aera of tracked object to all other objects 
+    in the new frame
+
+Notes: 
+    * consider other morphological properties or velocity 
+    * consider other weighting strategies
+    
 """
 from skimage.measure import regionprops, label
 
@@ -18,69 +22,62 @@ KEYS = ['area',
 
 class Matcher():
 
-    def __init__(self, p0=None, props=None, criteria=None, params=None, **kwargs): 
+    def __init__(self, p0=None, props=None, criteria=None, **kwargs): 
         """
         track_data: identified (+) instances of the object
         props: regionprops info for current image
         """
         self.p0 = p0
+        self.obj0 = None
         self.props = props
-        self.params = params      
-        self.err_thresh = 10e7
-        self.dist_thresh = 500
-
+        
         if criteria is not None:
             self.criteria = criteria
         else:
-            self.criteria = {'props': 1, 'disp': 1, 'vel': 1}
-        
-        self.obj0 = None
-    
+            self.criteria = {'area': 1,
+                             'distance': 1,
+                             'squared': True,
+                             'error_threshold': 5000,
+                             }
+
     def rank_and_match(self):
         self.rank()
         self.match()
         
         if self.obj0 is not None: 
-            print('found a match')
             return self.obj0
             
         if self.obj0 is None: 
-            print('no match found')
             return None
         
     def rank(self):
-        """ N most recent objects is compared to current objects id'd in image
-                determine most likely object in forward direction """
-        # most recent value
+        """ compared p0 size and distance to objects in the new frame """
         p0 = self.p0
         props = self.props            
-        
-        print('setup array for error values')
+
         err = np.full(len(props), 0, dtype=np.float64)
         
-        if 'props' in self.criteria:
-            print('compare props')
-            props_err = props_err(p0, props)
-            err += props_err*self.criteria['props']
-            
-        if 'dist' in self.criteria:
+        if 'distance' in self.criteria:
             print('calculate distances')
             dist = cal_dist(p0, props)
-            err += dist*self.criteria['dist']
+            err += dist*self.criteria['distance']
         
-        if 'vel' in self.criteria:
-            print('compare velocity and direction')
+        if 'area' in self.criteria: 
+            print('calculate distances')
+            area = cal_area(p0, props)
+            err += area*self.criteria['area']
         
+        if 'squared' in self.criteria: 
+            err = err**2
+            
+        print('err is:', err)
         self.err = err
     
     def match(self):
-        """ one match is returned now. later, return a ranking and allow
-            corretion by user.
-            match only returned if below a max value
-        """
+        """ return best match if below error threshold """
         index = np.argmin(self.err)
         
-        if self.err[index] < self.err_thresh: 
+        if self.err[index] < self.criteria['error_threshold']: 
             self.obj0 = index
         else:
             self.obj0 = None
@@ -91,59 +88,11 @@ def cal_dist(p0, props):
     dist = dist.astype(np.float64)
     return dist
 
-def dist_err(dist):
-    """ a simple metric, assumes slow moving so closer is better"""
-    return dist**2
-    
-def props_err(p0, props):
-    """ """
-    # can adjust weightings (w) and error function (err_func) 
+def cal_area(p0, props):
     area = np.array([p.area for p in props]) - p0.area
-    major_axis_length = np.array([p.major_axis_length for p in props]) - p0.major_axis_length
-    minor_axis_length = np.array([p.minor_axis_length for p in props]) - p0.minor_axis_length
-    orientation = np.array([p.orientation for p in props]) - p0.orientation
-    perimeter = np.array([p.perimeter for p in props]) - p0.perimeter
-    
-    vals = np.array((area, 
-                    perimeter, 
-                    minor_axis_length, 
-                    major_axis_length,
-                    orientation, 
-                    perimeter,
-                    ))
-    
-    w = np.array([1,1,1,1,1,1]) 
-    err = np.apply_along_axis(err_func, 0, vals, w)
-    err = err.sum(axis=0)
+    area = np.abs(area)
     return err
-    
-def err_func(a, w=None):
-    """Average first and last element of a 1-D array"""    
-    return np.array((w[0]*a[0]**2, 
-                     w[1]*a[1]**2, 
-                     w[2]*a[2]**2, 
-                     w[3]*a[3]**2, 
-                     w[4]*a[4]**2, 
-                     w[5]*a[5]**2))
-
-
-
-
-
-def test_img():
-    img = np.zeros((1000,1000))
-    img[100:200, 120:200] = 255
-    img[300:400,350:400] = 255
-    img[500:600,50:600] = 255
-    return img           
-
-
-        
-#    def cal_disp(self, p1, p2):
-#        dist = np.linalg.norm(p2-p1)
-#        
-#        print('distance:', dist)
-#        
+         
 if __name__ == '__main__':
     print('Test matching')
     

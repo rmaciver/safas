@@ -48,12 +48,10 @@ class Tracker(QObject):
         super(Tracker, self).__init__(*args, **kwargs)
 
         if parent is None:
-            print('parent is None')
             self.params = params
             self.parent = parent
             
         if parent is not None:
-            print('parent is not None')
             self.parent = parent
             self.params = parent.params
         
@@ -64,7 +62,7 @@ class Tracker(QObject):
         self.frame_index = None
         self.frame_count = 0
         self.overlay = None
-
+        
     def add_frame(self, frame, frame_index, add_all_objects=False, **kwargs):
         """ filtered binary frames are labelled then added
             frame: <uint8 array>
@@ -149,6 +147,7 @@ class Tracker(QObject):
 
     def update_object_track(self, frame_index, id_obj, id_curr, **kwargs):
         """ add a new object to an existing track """
+        
         prop = self.frames[frame_index]['props'][id_curr]
         vals = {'frame_index': frame_index,
                 'id_curr': id_curr,
@@ -160,38 +159,27 @@ class Tracker(QObject):
     def predict_next(self, frame, index, id_obj, **kwargs):
         """ """
         # an easy way to terminate need to terminate after certain length.... 5?
-        
-        print('max track len:', self.params['improcess']['max_track_len'])
         maxobjs = self.params['improcess']['max_track_len']
-     
-        # maxobjs = 100 # override limit
         
         if len(self.tracks['id'][id_obj]) < maxobjs:
         
             p0 = self.tracks['id'][id_obj][-1]['prop'] # most recent one added
-            
             val_open = self.tracks['id'][id_obj][-1]['id_curr']
-            
             props = self.frames[index]['props']
-            
-            M = Matcher(p0=p0, props=props, criteria={'dist': 1})
-            
+            M = Matcher(p0=p0, props=props, criteria={'dist': 1, 'props': 0.1})       
             p1 = M.rank_and_match()
-        
-            print('rank and match output:', p1)
+
             return (p1, val_open)
         else: 
-            return (None, None)
+            return (None, val_open)
         
     def outline_pair(self, frame, index, val_open=None, val_new=None, **kwargs):
         """ outline the selected new and open objects """
-        print('values in outline pair:', val_open, val_new)
         if val_new is not None:
             frame, index = self.outline_single_new(frame, index, val_new)
         if val_open is not None:
             frame, index = self.outline_single_open(frame, index, val_open)
-        
-        print('emitting the new outline...')
+
         self.display_frame_signal.emit(frame, index)
   
     def outline_single_new(self, frame, index, val, **kwargs):
@@ -200,7 +188,6 @@ class Tracker(QObject):
         
         coords = self.frames[index]['props'][val].coords
         frame[coords[:,0], coords[:,1]] = [0, 0, 255] # red
-        print('returning single new')
         return (frame, index)
 
     def outline_single_open(self, frame, index, val, **kwargs):
@@ -208,10 +195,8 @@ class Tracker(QObject):
         index -= 1
         
         if index in self.frames:
-            print('index in self.frames, single_open')
             coords = self.frames[index]['props'][val].coords
             frame[coords[:,0], coords[:,1]] = [255, 0, 0] # blue
-            print('returning open')
             return (frame, index)
         else:
             return None
@@ -255,10 +240,8 @@ class Tracker(QObject):
         
         # update the velocity if more than one object in track
         self.cal_vel()
-        
         # save tracks to pandas file
         tracks = self.tracks['id']
-        
         
         # take the first object in each track list
         if self.params['output'] == 0:
@@ -268,35 +251,37 @@ class Tracker(QObject):
                 self.parent.parent.set_output()
                 
         dirout = self.params['dirout']
-        print('output is:', dirout)
 
         T = []
         pxcal = self.params['improcess']['pixel_size']
         
         for t in tracks: 
             tk = tracks[t][0]
-            pk = {}
-            for ky in KEYS:
-                # calculate metric vals with pxcal
-                if ky == 'area':
-                    pk[ky] = tk['prop'][ky]*pxcal**2
-                
-                elif ky in ['equivalent_diameter', 
-                          'perimeter', 
-                          'minor_axis_length', 
-                          'major_axis_length']:
+            print('check last added:', tracks[t][-1])
+            
+            if tracks[t][-1] is not None:
+                # do not calculate for 'lost' objects
+                pk = {}
+                for ky in KEYS:
+                    # calculate metric vals with pxcal
+                    if ky == 'area':
+                        pk[ky] = tk['prop'][ky]*pxcal**2
                     
-                    pk[ky] = tk['prop'][ky]*pxcal
-                else: 
-                    pk[ky] = tk['prop'][ky]
-   
-            if 'vel_mean' in tk:
-                pk['vel_mean'] = tk['vel_mean']
-                pk['vel_N'] = tk['vel_N']
-                pk['vel_std'] = tk['vel_std']
-            T.append(pk)
+                    elif ky in ['equivalent_diameter', 
+                              'perimeter', 
+                              'minor_axis_length', 
+                              'major_axis_length']:
+                        
+                        pk[ky] = tk['prop'][ky]*pxcal
+                    else: 
+                        pk[ky] = tk['prop'][ky]
+       
+                if 'vel_mean' in tk:
+                    pk['vel_mean'] = tk['vel_mean']
+                    pk['vel_N'] = tk['vel_N']
+                    pk['vel_std'] = tk['vel_std']
+                T.append(pk)
         
-        print('len T:', len(T))
         df = pd.DataFrame(T)
         
         # check existing files in dir_out/data
@@ -322,8 +307,6 @@ class Tracker(QObject):
         # note: mechanism to detected when the frames are not sequential
         #       i.e. if object is detected in frame 1 and 3, then velocity
         #            will appear to be double the actual value
-        print('frame rate:', self.params['improcess']['fps'])
-        
         dt = 1/self.params['improcess']['fps']
         
         T = {}
@@ -337,25 +320,20 @@ class Tracker(QObject):
                     dist = np.linalg.norm(cents[(k+1)]-cents[k])
                     disp.append(dist) 
                 
-                print('update first instance with the cal')
                 disp_metric = np.array(disp)*self.params['improcess']['pixel_size']/10**3 # in CM
                 v = disp_metric/dt
                 N = len(v)
                 v_mean = np.mean(v)
                 v_std = np.std(v)
              
-                print('put velocity info back into dict')
                 # convert to metric
                 track[0]['vel_mean'] = v_mean
                 track[0]['vel_std'] = v_std
                 track[0]['vel_N'] = N
-                
-                print('put back into self.tracks in first object')
                 T[i] = track
          
-        print('self.tracks:', len(self.tracks['id']))
         self.tracks['id'] = T
-        print('self.tracks:', len(self.tracks['id']))
+
         
 def test_img():
     img = np.zeros((1000,1000))

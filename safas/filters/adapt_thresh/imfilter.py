@@ -28,7 +28,6 @@ from safas.filters.imfilters_module import (marker_based_watershed,
 def setup():
     return None
 
-
 def imfilter(src,
             edge_thresh=40,
             block_size=50,

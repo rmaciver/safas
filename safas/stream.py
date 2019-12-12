@@ -27,21 +27,12 @@ from PyQt5.QtCore import *
 
 from pathlib import Path
 
-import safas
 from safas.viewer import TrackbarViewer
 from safas.trackpanel import TrackPanel
 from safas.handler import Handler
 from safas.qt_threads import QueueThreads
 from safas.config import config_params, read_params, set_dirout
-
-__author__ = 'Ryan MacIver'
-__copyright__ = 'Copyright 2019'
-__credits__ = ['Ryan MacIver']
-__license__ = 'MIT'
-__version__ = '0.0.1'
-__maintainer__ = 'Ryan MacIver'
-__email__ = 'rmcmaciver@hotmail.com'
-__status__ = 'Dev'
+from safas import filters
 
 class Stream(QObject):
     """
@@ -56,7 +47,6 @@ class Stream(QObject):
         self.params = params
         self.params_file = params_file
 
-        self.update_resource_path()
         self.config()
         self.threadpool = QueueThreads()
 
@@ -64,24 +54,23 @@ class Stream(QObject):
         self.running = False
         self.track_init = False
 
-    def update_resource_path(self, **kwargs):
-        self.res_path = Path(os.path.realpath(__file__)).parents[0]
-        print('res path:', self.res_path)
-        self.params_path = os.path.join(self.res_path, 'params')
-        print('resource path:', self.res_path)
-
     def list_filters(self):
         """ get short names of folders for import """
-        paths =  glob(os.path.join(self.res_path, 'filters/*/'))
-        paths = [os.path.basename(os.path.dirname(path)) for path in paths]
-        if '__pycache__' in paths:
-            paths.remove('__pycache__')
-        return paths
+        filts = []
+
+        for filt in dir(filters):
+            # do not add dunder methods or filter functions module
+            if '__' in filt:
+                continue
+            if filt == 'imfilters_module':
+                continue
+            filts.append(filt)
+
+        return filts
 
     def config(self):
         """ update params from config file if necessary"""
         # params path should be relative to the main package in params directory
-        self.params_file = os.path.join(self.params_path, self.params_file)
         self.params = config_params(params=self.params, params_file=self.params_file)
 
     def set_output(self):
@@ -89,16 +78,16 @@ class Stream(QObject):
 
     def setup(self):
         """
-        take params from file or from gui, setup the data source based on
-            the device macro
+        take params from file or from gui, setup the data source
         """
-        # setup the handler to read files
         self.handler = Handler(parent=self)
         self.handler.setup()
 
     def view(self):
         """ setup the trackbar viewer """
-        self.viewer = TrackbarViewer(parent=self, size=self.handler.size)
+        # assumes this has already been set in the Handler
+        size = self.params['improcess']['img_dim']
+        self.viewer = TrackbarViewer(parent=self, size=size)
         # outgoing signal from viewer
         self.viewer.frame_index_signal.connect(self.handler.get_frame)
         # incoming signal from handler
@@ -110,19 +99,17 @@ class Stream(QObject):
     def track(self):
         """ track in GUI or headless mode """
         self.track_panel = TrackPanel(parent=self)
-        self.track_panel.setup() # add the TrackLists in this step to access Stream 
-        
+        self.track_panel.setup() # add the TrackLists in this step to access Stream
+
         # connect TrackPanel and Tracks objects to status box in main gui
         self.track_panel.status_update_signal.connect(self.parent.update_status)
         self.track_panel.tracks.status_update_signal.connect(self.parent.update_status)
-
+        self.handler.status_update_signal.connect(self.parent.update_status)
+        
         # this is the main control point in the tracking display and user input
         self.handler.process_finished_signal.connect(self.track_panel.tracks.handle)
         self.handler.tracker.display_frame_signal.connect(self.viewer.update)
-        
-        # connect the params dialog signal to something
-        
-        
+
     def stop(self):
        self.handler.stop()
        self.viewer.stop()

@@ -22,8 +22,7 @@ class QueueThreads(QThreadPool):
     """
     def __init__(self):
         super(QueueThreads, self).__init__()   
-        print("Multithreading with maximum %d threads" % self.maxThreadCount())
-
+        
     def add_to_queue(self, 
                      function=None,
                      signal=None,
@@ -117,33 +116,6 @@ class WorkerSignals(QObject):
     imgtimed = pyqtSignal((object, str, int))
     obj = pyqtSignal(object)
     val = pyqtSignal(int)
-    
-if __name__ == '__main__':
-    print('Test the threading functions')
-    import time
-    def countdown(imgtime_callback, cdownv, **kwargs):
-        print('counting from %s' % int(cdownv))
-        for i in range(cdownv):
-            time.sleep(3)
-            print(i)
-        imgtime_callback.emit(1234, 'done')
-
-    @pyqtSlot(object, str)
-    def countdown_finished(number, status):
-        # the function to be carried out when the function completes
-        print('Job %d is %s' % (number, status))
-    
-    Q = QueueThreads()
-    
-    # pass the signal by the name in the WorkerSignals class
-    # add signals as necessary
-    # this ensure they are 'bound'
-    for i in range(4):
-        Q.add_to_queue(function=countdown, 
-                       cdownv=random.randint(1,10),
-                       signal='imgtime', 
-                       slot=countdown_finished)   
-
 
 
 

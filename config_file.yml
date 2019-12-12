@@ -14,11 +14,11 @@ tracker_control:
   mode: manual
 
 improcess:
-  mode: trigger
+  mode: find-all
   running: False
   fps: None
   pixel_size: 8.6 # microns
-  vid_dim: None   # dimensions of image. [height, width, length]
+  size: None   # dimensions of image. [height, width, length]
   filter: sobel_focus
   max_track_len: 50
   kwargs:
@@ -28,3 +28,13 @@ improcess:
     img_thresh: 150
     edge_thresh: 30
     edge_dist: 1
+
+matcher:
+  err_threshold: 5000
+  distance: 1
+  area: 1
+  squared: True
+
+viewer:
+  pos: [750, 50]
+  scale: 0.5

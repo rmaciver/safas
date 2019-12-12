@@ -9,11 +9,14 @@ import cv2
 from skimage.measure import regionprops
 
 import numpy as np
+from safas import data
+import matplotlib.pyplot as plt
 
 def focus_filter(labels, img, edge_thresh=30, edge_dist=2, **kwargs):
     """ remove out of focus flocs by combining labels and gradient images """
-    grad = cal_grad_img(img)
-    labels = perim_filter(labels, grad, edge_thresh=edge_thresh, edge_dist=edge_dist)
+    grad = cal_grad_img(img, edge_thresh=edge_thresh)
+    labels = perim_filter(labels, grad, edge_dist=edge_dist)
+
     return labels
 
 def cal_grad_img(img, edge_thresh=30):
@@ -31,7 +34,7 @@ def cal_grad_img(img, edge_thresh=30):
     N, filt = cv2.threshold(grad, edge_thresh, 255, cv2.THRESH_BINARY)
     return filt
 
-def perim_filter(labels, grad, edge_thresh=30, edge_dist=5, **kwargs):
+def perim_filter(labels, grad, edge_dist=5, **kwargs):
     """ remove out of focus flocs by combining labels and gradient images 
     
     ** does not seem to perform well for lower extent flocs **
@@ -51,7 +54,7 @@ def perim_filter(labels, grad, edge_thresh=30, edge_dist=5, **kwargs):
     fmask = perimb & gradb
     
     # erode flood mask to remove marginally focused 
-    kernel = np.ones((2, 2), np.uint8)
+    kernel = np.ones((1, 1), np.uint8)
     fmask_er = fmask.astype(np.uint8).copy()*255
     fmask_er = cv2.morphologyEx(fmask_er, cv2.MORPH_OPEN, kernel)
     
@@ -60,7 +63,7 @@ def perim_filter(labels, grad, edge_thresh=30, edge_dist=5, **kwargs):
     
     for p in P:
         xy = p.coords
-        if fmask[xy[:,0], xy[:,1]].any():
+        if fmask_er[xy[:,0], xy[:,1]].any():
             out[xy[:,0], xy[:,1]] = p.label
 
     return out
@@ -182,7 +185,7 @@ def add_contours(img, labels, contour_color, **kwargs):
 
     return contourimg
 
-def nn_perim_filter(labels, grad, **kwargs):
+def nn_perim_filter(labels, grad, edge_dist, show=False, **kwargs):
     """ remove out of focus flocs by combining labels and gradient images 
     
     ** does not seem to perform well for lower extent flocs **
@@ -198,38 +201,41 @@ def nn_perim_filter(labels, grad, **kwargs):
     # convet to bool for & operation
     perimb = perim > 0
     gradb = grad > 0
-    
-    print('perimb:', perimb.shape)
-    print('gradb:', gradb.shape)
-    
+
     fmask = perimb & gradb
     
     # erode flood mask to remove marginally focused 
-    kernel = np.ones((2, 2), np.uint8)
+    kernel = np.ones((1, 1), np.uint8)
     fmask_er = fmask.astype(np.uint8).copy()*255
     fmask_er = cv2.morphologyEx(fmask_er, cv2.MORPH_OPEN, kernel)
     
+    print('labels before:', len(np.unique(labels)))
     P = regionprops(labels)
     out = np.zeros_like(labels, np.uint8)
     
     for p in P:
         xy = p.coords
-        if fmask[xy[:,0], xy[:,1]].any():
+        if fmask_er[xy[:,0], xy[:,1]].any():
             out[xy[:,0], xy[:,1]] = p.label
-
+    print('labels after:', len(np.unique(out)))  
+    if show: 
+        f, ax = plt.subplots(1,3)
+        ax[0].imshow(perimb)
+        ax[1].imshow(fmask)
+        ax[2].imshow(out)
     return out
 
     
 if __name__ =='__main__':
     print('test the focus_filter')
-    from safas import data
-    import matplotlib.pyplot as plt
-    img = data.mudflocs()
-    thresh, img = prethresh_filter(img, img_thresh=100)
-    labels = marker_based_watershed(img, thresh)
-    grad = cal_grad_img(img, edge_thresh=50)
-    out = focus_filter_perim(labels, grad, edge_dist=2)
     
-    f, ax = plt.subplots(1,2, dpi=250)
+    img = data.mudflocs()
+    thresh, img = prethresh_filter(img, img_thresh=80)
+    labels = marker_based_watershed(img, thresh)
+    grad = cal_grad_img(img, edge_thresh=100)
+    out = nn_perim_filter(labels, grad, edge_dist=2)
+    out2 = focus_filter(labels=labels, img=img, edge_thresh=100, edge_dist=2)
+    f, ax = plt.subplots(1,3, dpi=250)
     ax[0].imshow(img)
     ax[1].imshow(out)
+    ax[2].imshow(out2)
