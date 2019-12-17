@@ -1,1 +1,4 @@
 *.pyc
+main_fbs.py
+*.spyproject
+*__pycache__

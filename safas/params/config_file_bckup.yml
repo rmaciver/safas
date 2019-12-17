@@ -30,10 +30,10 @@ improcess:
     edge_dist: 1
 
 matcher:
-  err_threshold: 5000
+  error_threshold: 5000
   distance: 1
   area: 1
-  squared: True
+  squared: False
 
 viewer:
   pos: [750, 50]

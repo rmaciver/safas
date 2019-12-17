@@ -99,21 +99,24 @@ class ParamsDialog(QMainWindow):
             vtype = gvars[ky][0]
 
             if vtype == bool:
-                defval = True
-                groupbox = self.add_radio(gvars=gvars, name=ky, defval=defval)
+                defval = gvars[ky][1][2]
+                groupbox = self.add_radio(name=ky, defval=defval)
                 self.layout.addWidget(groupbox, self.y, 0)
                 self.y += 1
-                
+
                 self.params_temp[ky] = defval
 
             if vtype == int:
-                defval = 120
-                groupbox = self.add_slider(gvars=gvars, name=ky, defval=defval)
+                defval = gvars[ky][1][2]
+                minval = gvars[ky][1][0]
+                maxval = gvars[ky][1][1]
+
+                groupbox = self.add_slider(name=ky, minval=minval, maxval=maxval, defval=defval)
                 self.layout.addWidget(groupbox, self.y, 0)
                 self.y += 1
                 self.params_temp[ky] = defval
 
-    def add_radio(self, gvars, name, defval): 
+    def add_radio(self, name, defval):
         layout = QGridLayout()
         groupbox = QGroupBox('')
         groupbox.setAlignment(Qt.AlignCenter)
@@ -121,7 +124,7 @@ class ParamsDialog(QMainWindow):
         label = QLabel(name)
 
         radiobutton = QRadioButton("On")
-        
+
         if defval:
             radiobutton.setChecked(True)
 
@@ -133,10 +136,10 @@ class ParamsDialog(QMainWindow):
         layout.addWidget(radiobutton, 0, 1)
 
         radiobutton = QRadioButton("Off")
-        
+
         if not defval:
             radiobutton.setChecked(True)
-            
+
         radiobutton.name = name
         radiobutton.value = False
         radiobutton.toggled.connect(self.radio_clicked)
@@ -150,7 +153,7 @@ class ParamsDialog(QMainWindow):
         if rb.isChecked():
             self.params_temp[rb.name] = rb.value
 
-    def add_slider(self, gvars, name, defval):
+    def add_slider(self, name, minval, maxval, defval):
         layout = QGridLayout()
         groupbox = QGroupBox('')
         groupbox.setAlignment(Qt.AlignCenter)
@@ -163,8 +166,8 @@ class ParamsDialog(QMainWindow):
         slider.setTickInterval(10)
         slider.setSingleStep(1)
         slider.label = value
-        slider.setMinimum(gvars[name][1][0])
-        slider.setMaximum(gvars[name][1][1])
+        slider.setMinimum(minval)
+        slider.setMaximum(maxval)
         slider.setValue(defval)
         slider.name = name
 

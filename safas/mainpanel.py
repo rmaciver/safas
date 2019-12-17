@@ -35,7 +35,7 @@ class MainPanel(QMainWindow):
         super(MainPanel, self).__init__(*args, **kwargs)
 
         self.layout = QGridLayout()
-        
+
         # Stream class is setup. GUI only accesses parameters through Stream
         self.stream = Stream(parent=self,
                              params=None,
@@ -43,18 +43,18 @@ class MainPanel(QMainWindow):
 
         self.file_status = {}
         self.buttons = {}
-        
+
         self.setup_window()
         self.setup_io_panel()
         self.setup_control_panel()
-        
+
         self.stream_status = self.panel(height=100, pos=2, title='status')
         self.params_status = self.panel(height=0, pos=3, title='params')
 
         self.update_params_status()
         self.update_io_status()
         self.show()
-        
+
     def setup_window(self):
         self.setWindowTitle('safas 0.0')
         self.layout = QGridLayout()
@@ -62,7 +62,7 @@ class MainPanel(QMainWindow):
         w.setLayout(self.layout)
         self.setCentralWidget(w)
         self.setGeometry(100, 100, 500, 800)
-        
+
     def setup_io_panel(self):
         """ display file input, output, params, and script"""
         top_layout_2 = QGridLayout()
@@ -74,8 +74,9 @@ class MainPanel(QMainWindow):
         self.buttons['input'] = QPushButton('input')
         user_menu = QMenu()
         user_menu.triggered.connect(self.file_select_clicked)
-        dir_setting = user_menu.addAction('directory')
+        #dir_setting = user_menu.addAction('directory')
         file_setting = user_menu.addAction('file')
+
         self.buttons['input'].setMenu(user_menu)
         top_layout_2.addWidget(self.buttons['input'], 3, 2)
 
@@ -96,18 +97,17 @@ class MainPanel(QMainWindow):
         top_layout_2.addWidget(self.file_status['params'], 5, 1)
         self.buttons['params'] = QPushButton('params', clicked=self.click_params)
         top_layout_2.addWidget(self.buttons['params'], 5, 2)
-        
+
         # set the params as a config file, allow user to mod some params
-        # and perhaps save a profile later
         self.buttons['params'].setEnabled(False)
-                
+
         status_box.setLayout(top_layout_2)
         self.layout.addWidget(status_box, 0, 0)
-        
+
     def setup_control_panel(self):
         top_layout_2 = QHBoxLayout()
 
-        ctrl_groupbox = QGroupBox('controls')
+        ctrl_groupbox = QGroupBox('video control')
 
         setup = QPushButton('load', clicked=self.click_setup)
         view = QPushButton('view', clicked=self.click_view)
@@ -126,7 +126,6 @@ class MainPanel(QMainWindow):
 
         self.buttons['track'].setEnabled(False)
         self.buttons['view'].setEnabled(False)
-
 
     def panel(self, height, pos, title):
         """ params and status boxes """
@@ -236,28 +235,58 @@ class MainPanel(QMainWindow):
 
     def click_setup(self) :
         """ setup the stream and handler components """
-        self.stream.setup()
-        self.buttons['view'].setEnabled(True)
+        tx = self.buttons['setup'].text()
+
+        if tx == 'load':
+            ret = self.stream.setup()
+            if ret:
+                self.buttons['setup'].setText('release')
+                self.buttons['view'].setEnabled(True)
+
+        if tx == 'release':
+            # prompt to stop...
+            msg = 'Stop analysis and close windows? Unsaved data will be lost'
+            buttonReply = QMessageBox.question(self,
+                                           'message',
+                                           msg,
+                                           QMessageBox.Yes | QMessageBox.No,
+                                           QMessageBox.No)
+            if buttonReply == QMessageBox.Yes:
+                self.stream.stop()
+                # close the windows ...
+
+                self.stream.close_windows()
+                self.buttons['setup'].setText('load')
+                self.buttons['view'].setEnabled(False)
+                self.buttons['track'].setEnabled(False)
+                self.stream_status.setText('video released.')
 
     def click_view(self):
         # connect the raw and processed images
-        self.buttons['track'].setEnabled(True)
-        self.stream.view()
-        # *** add lines above to gui
+        tx = self.buttons['view'].text()
+        if tx == 'view':
+            self.buttons['track'].setEnabled(True)
+            # only option is to release and reload
+            self.buttons['view'].setEnabled(False)
+            self.stream.view()
+            # *** add lines above to gui
+            self.update_status('viewer opened')
 
     def click_track(self):
         line = 'process the stream'
         self.update_status(line)
         # *** add lines below to gui
         self.stream.track()
+        self.buttons['track'].setEnabled(False)
         # *** add lines above to gui
 
     def closeEvent(self, event=None):
         self.update_status('close button pressed')
-        cv2.destroyAllWindows()
+        self.stream.stop()
         self.destroy()
-        if self.parent is None:
-            sys.exit(0)
+
+        #if self.parent is None:
+        sys.exit(0)
 
 def main(params=None, params_file=None):
     global app

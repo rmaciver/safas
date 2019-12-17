@@ -1,0 +1,11 @@
+axes.titlesize : 10
+axes.labelsize : 9
+axes.linewidth: 1.25
+lines.linewidth : 1
+lines.markersize : 4
+xtick.labelsize : 8
+ytick.labelsize : 8
+font.family: serif
+text.usetex: True
+legend.fontsize: 7
+legend.labelspacing : 0.5

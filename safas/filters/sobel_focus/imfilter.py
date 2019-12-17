@@ -22,11 +22,13 @@ from safas.filters.imfilters_module import (focus_filter,
                                            add_contours)
 
 # 2 dict to setup the GUI control
-define_args = {'img_thresh': [np.int, [0, 255]],
-               'edge_thresh': [np.int, [0, 255]],
-               'edge_distance': [np.int, [0,9]],
-               'apply_focus_filter': [np.bool, [True, False]],
-               'apply_clearedge_filter': [np.bool, [True, False]],}
+#   values are: [type, [MIN, MAX, DEFAULT]]
+define_args = {'img_thresh': [np.int, [0, 255, 120]],
+               'edge_thresh': [np.int, [0, 255, 120]],
+               'edge_distance': [np.int, [0,9, 1]],
+               'apply_focus_filter': [np.bool, [True, False, True]],
+               'apply_clearedge_filter': [np.bool, [True, False, True]],
+               'contour_thickness': [np.int, [1, 4, 1]]}
 
 # 3 must have a setup function. keep pattern as some filters require setup.
 def setup():
@@ -38,19 +40,22 @@ def imfilter(src,
             edge_distance=2,
             apply_focus_filter=True,
             apply_clearedge_filter=True,
+            contour_thickness=1,
             contour_color=(0,255,0),
             **kwargs):
-    
+
     thresh, gray = prethresh_filter(src.copy(), img_thresh)
     ret, labels = cv2.connectedComponents(thresh)
 
     if apply_focus_filter:
        labels = focus_filter(labels, gray, edge_thresh)
-       print('applied focus filter, edgethresh:', edge_thresh)
+
     if apply_clearedge_filter:
         labels = clearedge_filter(labels)
 
-    contour_img = add_contours(src.copy(), labels, contour_color=contour_color)
+    contour_img = add_contours(src.copy(), labels,
+                              contour_color=contour_color,
+                              contour_thickness=contour_thickness)
 
     return (labels, contour_img)
 

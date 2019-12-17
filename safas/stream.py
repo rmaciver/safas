@@ -53,7 +53,9 @@ class Stream(QObject):
         self.source = None
         self.running = False
         self.track_init = False
-
+        self.viewer = None
+        self.track_panel = None
+        
     def list_filters(self):
         """ get short names of folders for import """
         filts = []
@@ -70,7 +72,6 @@ class Stream(QObject):
 
     def config(self):
         """ update params from config file if necessary"""
-        # params path should be relative to the main package in params directory
         self.params = config_params(params=self.params, params_file=self.params_file)
 
     def set_output(self):
@@ -81,8 +82,11 @@ class Stream(QObject):
         take params from file or from gui, setup the data source
         """
         self.handler = Handler(parent=self)
-        self.handler.setup()
-
+        self.handler.status_update_signal.connect(self.parent.update_status)
+        ret = self.handler.setup()
+        
+        return ret
+        
     def view(self):
         """ setup the trackbar viewer """
         # assumes this has already been set in the Handler
@@ -93,24 +97,48 @@ class Stream(QObject):
         # incoming signal from handler
         self.handler.frame_signal.connect(self.viewer.update)
 
-    def update_params(self, **kwargs):
-        """ """
-
     def track(self):
         """ track in GUI or headless mode """
+        
         self.track_panel = TrackPanel(parent=self)
+        
         self.track_panel.setup() # add the TrackLists in this step to access Stream
-
+        print('setup the track_panel')
+        
         # connect TrackPanel and Tracks objects to status box in main gui
         self.track_panel.status_update_signal.connect(self.parent.update_status)
         self.track_panel.tracks.status_update_signal.connect(self.parent.update_status)
         self.handler.status_update_signal.connect(self.parent.update_status)
-        
+        print('connected to signals track_panel')
         # this is the main control point in the tracking display and user input
         self.handler.process_finished_signal.connect(self.track_panel.tracks.handle)
         self.handler.tracker.display_frame_signal.connect(self.viewer.update)
+        print('track was setup')
 
+    def restart_tracks(self):
+        """ a more thorough restart of the objects """
+       
+        cf = self.handler.frame_index
+        print('last frame in handler cap:', cf)
+        self.stop()
+        self.setup()
+        print('reset the tracker in handler')
+        self.track()
+        print('restart the tracker')
+        self.view()
+        #self.viewer.on_change(cf)
+        print('send last frame index to viewer')
+        
+    def close_viewer(self):
+        self.viewer.stop()
+    
+    def close_windows(self):
+        if self.track_panel: 
+            self.track_panel.click_exit_track()
+        
     def stop(self):
-       self.handler.stop()
-       self.viewer.stop()
-       self.threadpool.clear()
+        self.params['improcess']['running'] = False
+        self.handler.stop()
+        if self.viewer: 
+            self.viewer.stop()
+       

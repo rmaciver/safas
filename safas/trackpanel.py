@@ -20,27 +20,30 @@ class TrackPanel(QMainWindow):
     def __init__(self, parent=None, params=None, params_file=None, *args, **kwargs):
         super(TrackPanel, self).__init__(*args, **kwargs)
         # parent is the Stream object
+
         self.parent = parent
         self.setWindowTitle('tracking')
+
         self.buttons = {}
-        
+        self.tracks = None
+        self.matcherdialog = None
+        self.paramsdialog = None
+
         self.layout = QGridLayout()
         self.setup_control_panel()
         self.setup_track_control()
         self.setup_mode_panel()
         self.filter_control_panel()
-        
+
         w = QWidget()
         w.setLayout(self.layout)
         self.setCentralWidget(w)
 
         self.setGeometry(100, 1500, 50, 10)
         self.show()
-
-        self.action = 'pause'
         self.params_to_gui()
-        self.saved_data = False
-        
+        print('track panel init')
+
     def setup(self,):
         self.tracks = TrackLists(parent=self.parent)
         self.click_start()
@@ -51,32 +54,32 @@ class TrackPanel(QMainWindow):
         ctrl_groupbox = QGroupBox('modes')
 
         cb1 = QRadioButton()  # new
-        cb2 = QRadioButton()  # open
-        cb3 = QRadioButton() # tracks
+        # cb2 = QRadioButton()  # open
+        # cb3 = QRadioButton() # tracks
 
-        top_layout_2.addWidget(cb3, 0, 0)
-        top_layout_2.addWidget(QLabel('manual'), 0, 1)
-        cb3.setChecked(False)
-        cb3.mode = "manual"
-        cb3.toggled.connect(self.mode_radio_clicked)
-        
-        top_layout_2.addWidget(cb2, 0, 4)
-        top_layout_2.addWidget(QLabel('find-one'), 0, 5)
-        cb2.setChecked(True)
-        cb2.mode = "find-one"
-        cb2.toggled.connect(self.mode_radio_clicked)
+        # top_layout_2.addWidget(cb3, 0, 0)
+        # top_layout_2.addWidget(QLabel('manual'), 0, 1)
+        # cb3.setChecked(False)
+        # cb3.mode = "manual"
+        # cb3.toggled.connect(self.mode_radio_clicked)
+        #
+        # top_layout_2.addWidget(cb2, 0, 4)
+        # top_layout_2.addWidget(QLabel('find-one'), 0, 5)
+        # cb2.setChecked(True)
+        # cb2.mode = "find-one"
+        # cb2.toggled.connect(self.mode_radio_clicked)
 
-        top_layout_2.addWidget(cb1, 0, 2)
-        top_layout_2.addWidget(QLabel('find-all'), 0, 3)
-        cb1.setChecked(False)
+        top_layout_2.addWidget(cb1, 0, 0)
+        top_layout_2.addWidget(QLabel('find-all'), 0, 1)
+        cb1.setChecked(True)
         cb1.mode = "find-all"
         cb1.toggled.connect(self.mode_radio_clicked)
-        
-        self.mode_boxes = {'manual': cb3, 
-                           'find-one': cb2,
+
+        self.mode_boxes = {'manual': None,
+                           'find-one': None,
                            'find-all': cb1,
                            }
-        
+
         ctrl_groupbox.setLayout(top_layout_2)
         self.layout.addWidget(ctrl_groupbox, 0, 3)
 
@@ -90,21 +93,24 @@ class TrackPanel(QMainWindow):
          cbox= self.sender()
          views_hand = self.parent.params['tracker_control']['views']
          views_hand[cbox.view] = event
-    
+
     def params_to_gui(self):
         """ """
-        if 'mode' in self.parent.params['improcess']:
-            mode = self.parent.params['improcess']['mode']
-            if mode in self.mode_boxes: 
-                for md in self.mode_boxes:
-                    self.mode_boxes[md].setChecked(False)
-                self.mode_boxes[mode].setChecked(True)
-            
+        # mode is set to find-all automaticall for now.
+        # the other options are disabled.
+
+        # if 'mode' in self.parent.params['improcess']:
+        #     mode = self.parent.params['improcess']['mode']
+        #     if mode in self.mode_boxes:
+        #         for md in self.mode_boxes:
+        #             self.mode_boxes[md].setChecked(False)
+        #         self.mode_boxes[mode].setChecked(True)
+
         if 'filter' in self.parent.params['improcess']:
             filt = self.parent.params['improcess']['filter']
             index = self.filter_combo.findText(filt)
             self.filter_combo.setCurrentIndex(index)
-            
+
     def filter_control_panel(self):
         top_layout_2 = QHBoxLayout()
         ctrl_groupbox = QGroupBox('image filter')
@@ -113,13 +119,13 @@ class TrackPanel(QMainWindow):
         self.list_filters()
         self.filter_combo.currentIndexChanged.connect(self.change_filter)
         top_layout_2.addWidget(self.filter_combo)
-        
+
         params = QPushButton('filter params', clicked=self.click_params_dialog)
         top_layout_2.addWidget(params)
-       
+
         ctrl_groupbox.setLayout(top_layout_2)
         self.layout.addWidget(ctrl_groupbox, 0, 0)
-    
+
     def list_filters(self):
         """ update the selected filter """
         self.filter_combo.addItems(self.parent.list_filters())
@@ -127,24 +133,24 @@ class TrackPanel(QMainWindow):
     def change_filter(self):
         """ select filter from list """
         self.parent.params['improcess']['filter'] = self.filter_combo.currentText()
-    
+
     def setup_track_control(self):
         """ tracking related buttons"""
         top_layout_2 = QHBoxLayout()
 
         ctrl_groupbox = QGroupBox('track control')
-        
+
         list_tracks = QPushButton('show lists', clicked=self.click_list_tracks)
         clear_tracks = QPushButton('clear lists', clicked=self.click_clear_tracks)
         match_dialog = QPushButton('match criteria', clicked=self.match_control_panel)
-        
+
         save = QPushButton('save', clicked=self.click_save)
         plot = QPushButton('plot', clicked=self.make_plot)
         plot.setEnabled(False)
-        
+
         self.buttons['save'] = save
         self.buttons['plot'] = plot
-        
+
         top_layout_2.addWidget(match_dialog)
         top_layout_2.addWidget(list_tracks)
         top_layout_2.addWidget(clear_tracks)
@@ -152,7 +158,7 @@ class TrackPanel(QMainWindow):
         top_layout_2.addWidget(plot)
         ctrl_groupbox.setLayout(top_layout_2)
         self.layout.addWidget(ctrl_groupbox, 0, 1)
-        
+
     def setup_control_panel(self):
         top_layout_2 = QHBoxLayout()
 
@@ -161,11 +167,11 @@ class TrackPanel(QMainWindow):
         pause = QPushButton('pause', clicked=self.click_pause)
         next_frame = QPushButton('next frame >', clicked=self.click_next)
         exit_track = QPushButton('exit', clicked=self.click_exit_track)
-      
+
         top_layout_2.addWidget(next_frame)
         top_layout_2.addWidget(start)
         top_layout_2.addWidget(pause)
-       
+
         top_layout_2.addWidget(exit_track)
         ctrl_groupbox.setLayout(top_layout_2)
         self.layout.addWidget(ctrl_groupbox, 0, 2)
@@ -173,11 +179,12 @@ class TrackPanel(QMainWindow):
         self.buttons['pause'] = pause
         self.buttons['start'] = start
 
+
     def match_control_panel(self):
         self.matcherdialog = MatcherDialog(parent=self, params=self.parent.params['matcher'])
         self.matcherdialog.params_update_signal.connect(self.matcher_params_update)
         self.matcherdialog.setup()
-        
+
     def click_start(self):
         """ """
         self.parent.params['improcess']['running'] = True
@@ -194,24 +201,23 @@ class TrackPanel(QMainWindow):
         """ """
         self.parent.handler.tracker.save()
         self.buttons['plot'].setEnabled(True)
-        
+
     def click_next(self):
         """ """
         self.parent.viewer.next_frame()
 
-    def click_prev(self):
-        """ """
-
     def click_list_tracks(self):
         """ reopens the list if closed"""
         self.tracks.vis()
-    
+
     def click_clear_tracks(self):
         msg = 'Clear the tracks? Consider to save the data before deleting.'
         buttonReply = QMessageBox.question(self, 'clear objects message', msg, QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
+
         if buttonReply == QMessageBox.Yes:
-            self.parent.handler.reset_tracker()
-            
+            self.tracks = TrackLists(parent=self.parent)
+            self.parent.restart_tracks()
+
     def make_plot(self):
         """ read the output and plot results in saved dataframe
         * must be at least one dataframe saved
@@ -233,20 +239,28 @@ class TrackPanel(QMainWindow):
     def filter_params_update(self, params, **kwargs):
         """ update params from user input """
         self.parent.params['improcess']['kwargs'] = params
-    
+
     def matcher_params_update(self, params, **kwargs):
         """ update params from user input """
         self.parent.params['matcher'] = params
-        
+
     def click_exit_track(self):
         """ """
-        self.action = 'exit'
+        if self.paramsdialog:
+            self.paramsdialog.destroy()
+        if self.matcherdialog:
+            self.matcherdialog.destroy()
+        if self.tracks:
+            self.tracks.destroy()
+
         self.destroy()
+
         if self.parent is None:
             sys.exit(0)
 
     def mouse_event(self, event, frame_index, x, y, **kwargs):
         print(event, frame_index, x, y)
+
 
 class TrackLists(QMainWindow):
     status_update_signal = pyqtSignal(str, name="status_update_signal")
@@ -286,20 +300,12 @@ class TrackLists(QMainWindow):
         # add then predict next for selected track
         self.predictone_shortcut = QShortcut(QKeySequence("n"), self)
         self.predictone_shortcut.activated.connect(self.parent.track_panel.click_next)
-#
-#        lines = 'keyboard shortcuts:'
-#        lines += '\n"a" to add object from "new" list'
-#        lines += '\n"l" to link selected new and open objects'
-#        lines += '\n"n" next frame'
-#
-#        self.control_message = lines
-#        self.status_update_signal.emit(self.control_message)
 
     def setup_lists(self):
         """ """
         top_layout_2 = QGridLayout()
 
-        ctrl_groupbox = QGroupBox('control')
+        ctrl_groupbox = QGroupBox()
 
         self.tracks = QListWidget()
         self.open_objs = QListWidget()
@@ -310,13 +316,23 @@ class TrackLists(QMainWindow):
         self.open_objs.currentItemChanged.connect(self.outline_pair)
         self.tracks.currentItemChanged.connect(self.outline_track)
 
-        top_layout_2.addWidget(QLabel('tracks'), 0, 0)
-        top_layout_2.addWidget(QLabel('open'), 0, 1)
-        top_layout_2.addWidget(QLabel('new'), 0, 2)
+        top_layout_2.addWidget(QLabel('Track List'), 0, 0)
+        LF = QLabel('Last frame')
+        top_layout_2.addWidget(LF, 0, 1)
+        top_layout_2.addWidget(QLabel('New objects'), 0, 2)
 
         top_layout_2.addWidget(self.tracks, 1, 0)
         top_layout_2.addWidget(self.open_objs, 1, 1)
         top_layout_2.addWidget(self.new_objs, 1, 2)
+
+        # this hides the middle columne of "open" objects, which are the most
+        #  recent objects added to the track. this is useful for manual
+        # linking of objects but is confusing for the user
+        hide_open = True
+        if hide_open:
+            self.open_objs.hide()
+            LF.hide()
+
 
         ctrl_groupbox.setLayout(top_layout_2)
         self.layout.addWidget(ctrl_groupbox, 1, 1)
@@ -330,48 +346,21 @@ class TrackLists(QMainWindow):
         index = self.parent.handler.frame_index
         tracker = self.parent.handler.tracker
 
-        if self.parent.params['tracker_control']['mode'] == 'manual':
-            self.status_update_signal.emit(self.control_message)
-
-        if self.parent.params['tracker_control']['mode'] == 'find-one':
-
-            if self.current_track is not None:
-                val_new, val_open = self.parent.handler.tracker.predict_next(frame=frame,
-                                                                   index=index,
-                                                                   id_obj=self.current_track)
-
-                if val_new is not None:
-                    a = self.open_objs.findItems(str(val_open), Qt.MatchExactly)
-                    b = self.new_objs.findItems(str(val_new), Qt.MatchExactly)
-                    c = self.tracks.findItems(str(self.current_track), Qt.MatchExactly)
-
-                    if len(a) > 0:
-                        self.open_objs.setCurrentItem(a[0])
-                    if len(b) > 0:
-                        self.new_objs.setCurrentItem(b[0])
-
-                    self.tracks.setCurrentItem(c[0])
-                    self.outline_pair(val=None,
-                                      update_vals=False,
-                                      val_new=val_new,
-                                      val_open=val_open)
-                    self.new_objs.setFocus()
-                    self.status_update_signal.emit('finished matching')
+        # override here, only mode available to user
+        self.parent.params['tracker_control']['mode'] = 'find-all'
 
         if self.parent.params['tracker_control']['mode'] == 'find-all':
             """ find best match for each object added to track list """
             # try to match open with new, link automatically
             if len(tracker.tracks['id']) > 0:
+                print('there are N tracks:', len(tracker.tracks['id']))
                 for val_track in tracker.tracks['id']:
+                    print('current track:', val_track)
                     val_new, val_open = self.parent.handler.tracker.predict_next(frame=frame,
                                                                            index=index,
                                                                            id_obj=val_track)
-                    #if val_new is not None:
-                    # will skip the obj if not found or beyond max length
-                    # adding val_new as None will effectively terminate the track
-                    print('new obj is:', val_new)
+                    print('returned vals:', val_new, val_open)
                     tracker.update_object_track(index, id_obj=val_track, id_curr=val_new)
-                    print('updated:', val_track)
 
                 self.status_update_signal.emit('finished matching')
             else:
@@ -397,7 +386,6 @@ class TrackLists(QMainWindow):
 
         if val_new is not None:
              self.tracks.clear()
-            # add to list of tracked objects
              frame_index = self.parent.handler.tracker.frame_index
              self.parent.handler.tracker.add_object(frame_index, val_new)
              number_tracks = self.parent.handler.tracker.n_tracks()

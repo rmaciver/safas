@@ -34,7 +34,7 @@ class Handler(QObject):
     frame_signal = pyqtSignal(object, int, name="frame_signal")
     process_finished_signal = pyqtSignal(int, name='process_finished_signal')
     status_update_signal = pyqtSignal(str, name="status_update_signal")
-     
+
     def __init__(self, parent=None, params=None):
         super(self.__class__, self).__init__(parent)
 
@@ -47,52 +47,53 @@ class Handler(QObject):
         if parent is None:
             self.params = params
 
+        self.cap = None
+
         self.frame_index = 0
+
         self.frame_count = 0
-        self.process_frames = False
 
     def setup(self):
         """ take params and setup the file source and connections """
-        self.open_vidreader()
-        self.threadpool.add_to_queue(self.start_video)
-        self.get_filter(name=self.params['improcess']['filter'])
-        self.tracker = Tracker(parent=self)
+        ret = self.open_vidreader()
 
-        if self.params['improcess']['mode']  == 'trigger':
-            self.params['improcess']['running'] = False
+        if ret:
+            self.threadpool.add_to_queue(self.start_video)
+            self.get_filter(name=self.params['improcess']['filter'])
+            self.tracker = Tracker(parent=self)
+        else:
+            self.status_update_signal.emit('input file does not exist')
+        return ret
 
-        if self.params['improcess']['mode'] == 'auto':
-            self.params['improcess']['running'] = True
-    
-    def reset_tracker(self):
-        self.tracker = Tracker(parent=self)
-        
     def open_vidreader(self):
         file = self.params['input']
 
         if not os.path.isfile(file):
-            self.status_update_signal.emit('input file does not exist')
-        else:    
+            return None
+        else:
             self.cap = cv2.VideoCapture(file)
             line = 'video started: %s' % self.cap.isOpened()
             self.status_update_signal.emit(line)
-    
+
             width  = int(self.cap.get(cv2.CAP_PROP_FRAME_WIDTH))  # float
             height = int(self.cap.get(cv2.CAP_PROP_FRAME_HEIGHT)) # float
             length = int(self.cap.get(cv2.CAP_PROP_FRAME_COUNT))
-    
+
             # may want to allow user to override fps if not correct in video header
             fps = int(self.cap.get(cv2.CAP_PROP_FPS))
-    
+
             # update params
             self.params['improcess']['fps'] = fps
             self.params['improcess']['img_dim'] = [height, width, length]
 
+            return 1
+
     def start_video(self, **kwargs):
         line = 'video starting %s' % self.cap.isOpened()
         self.status_update_signal.emit(line)
+        length = self.params['improcess']['img_dim'][2]
+
         while self.cap.isOpened():
-            length = self.params['improcess']['img_dim'][2]
             if self.cap.get(cv2.CAP_PROP_POS_FRAMES) >= length:
                 break
 
@@ -103,12 +104,7 @@ class Handler(QObject):
         self.frame_index = index
 
         if mode == 'test':
-            # process image to vis and adjust params
-            # do not add to data
-            print('mode is test:', params)
-            
             label_frame, frame = self.imfilter(src=frame, **params)
-            print('processed in mode test')
         else:
             if self.params['improcess']['running']:
                 label_frame, frame = self.imfilter(src=frame,
@@ -122,8 +118,9 @@ class Handler(QObject):
         # emit either the raw or overlay image
         self.frame_signal.emit(frame, index)
 
-    def set_process(self, **kwargs):
-        self.process_frames = True
+    def stop(self, **kwargs):
+        if self.cap:
+            self.cap.release()
 
     def get_filter(self, name):
         """

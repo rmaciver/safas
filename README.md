@@ -25,8 +25,9 @@ The main modules are:
 * **GPU-enabled.** Several filters in safas are GPU-enabled, through OpenCV with OpenCL, if the software environment is configured correctly during installation.
 
 ## Installation
-safas is a Python package and has several dependencies. This section will describe installation of the software required to run safas.
+safas is a Python package and has several dependencies.
 
+An .exe compatible with Windows 10 is available, please contact the maintainer of this project.
 
 ### Setup with Conda package manager
 Setup from the environment file with Conda will create an environment called safas_env:

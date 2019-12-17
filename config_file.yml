@@ -1,10 +1,8 @@
-baseout: C:\Users\Ryan\Desktop\Data\pro
 basein: C:\Users\Ryan\Desktop\Data\raw
-params_file: None
-#input: C:/Users/Ryan/Desktop/Data/raw/2019-11-27_mix_samples_graviprobe_2/raw/001_part1_mix_samples_graviprobe_2.avi
-input: C:/Users/Ryan/Desktop/Data/raw/2019-12-03_data/raw/002_RT2_01_DII_12024_01.avi
+baseout: C:\Users\Ryan\Desktop\Data\pro
+
+input: C:\Users\Ryan\Desktop\002_RT2_01_DII_12024_00.avi
 output: 0
-res_path: 0
 
 tracker_control:
   views:
@@ -12,7 +10,7 @@ tracker_control:
     open: False
     tracks: True
   mode: manual
-
+  
 improcess:
   mode: find-all
   running: False
@@ -30,10 +28,10 @@ improcess:
     edge_dist: 1
 
 matcher:
-  err_threshold: 5000
+  error_threshold: 5000
   distance: 1
   area: 1
-  squared: True
+  squared: False
 
 viewer:
   pos: [750, 50]

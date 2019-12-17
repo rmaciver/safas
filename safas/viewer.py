@@ -17,14 +17,14 @@ class TrackbarViewer(QObject):
 
     frame_index_signal = pyqtSignal(int, name="frame_index_signal")
 
-    def __init__(self, 
-                 parent=None, 
-                 size=None, 
-                 pos=(750,50), 
-                 scale=0.5, 
+    def __init__(self,
+                 parent=None,
+                 size=None,
+                 pos=(750,50),
+                 scale=0.5,
                  params=None,
                  **kwargs):
-        
+
         super(TrackbarViewer, self).__init__(**kwargs)
 
         # parameterize this later
@@ -40,6 +40,7 @@ class TrackbarViewer(QObject):
     def setup_window(self):
         """ set postion and scaling of trackbar window"""
         cv2.namedWindow(self.name, cv2.WINDOW_NORMAL)
+        cv2.startWindowThread()
         cv2.moveWindow(self.name, self.pos[0], self.pos[1])
         cv2.resizeWindow(self.name,
                          int(self.size[1]*self.scale),
@@ -70,9 +71,13 @@ class TrackbarViewer(QObject):
         """ update the current image
             frames from external source are connected here
         """
-        frame = frame.astype(np.uint8) # force to uint8. one function sends int32
-        cv2.imshow(self.name, frame)
-        self.frame_index = index
+        if frame is not None:
+            frame = frame.astype(np.uint8) # force to uint8. one function sends int32
+            cv2.imshow(self.name, frame)
+            self.frame_index = index
 
     def stop(self, **kwargs):
+        cv2.waitKey(1)
         cv2.destroyAllWindows()
+        cv2.waitKey(1)
+        #cv2.destroyWindow('trackbar')

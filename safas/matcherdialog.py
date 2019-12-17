@@ -232,7 +232,9 @@ class MatcherDialog(QMainWindow):
 
     def radio_clicked(self):
         rb = self.sender()
+        print('rb sender:', rb.name)
         if rb.isChecked():
+            print('set to:', rb.value)
             self.params_temp[rb.name] = rb.value
             
     def exit_dialog(self, event=None):
