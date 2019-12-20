@@ -12,13 +12,27 @@ import numpy as np
 from safas import data
 import matplotlib.pyplot as plt
 
-def focus_filter(labels, img, edge_thresh=30, edge_dist=2, **kwargs):
+def focus_filter(labels, img, edge_thresh=30, edge_dist=2, edge_ratio=90, **kwargs):
     """ remove out of focus flocs by combining labels and gradient images """
+    print('edge thresh:', edge_thresh)
+    print('edge dist:', edge_dist)
+    print('edge ratio:', edge_ratio)
+    
     grad = cal_grad_img(img, edge_thresh=edge_thresh)
-    labels = perim_filter(labels, grad, edge_dist=edge_dist)
+    
+    labels = perim_filter(labels, 
+                          grad, 
+                          edge_dist=edge_dist, 
+                          edge_ratio=edge_ratio)
 
     return labels
 
+def nn_edge_filter(labels, gray, hed, edge_dist=2, **kwargs):
+    """ remove out of focus flocs by combining labels and gradient images """
+    labels = perim_filter(labels, hed, edge_dist=edge_dist)
+    return labels
+
+    
 def cal_grad_img(img, edge_thresh=30):
     # calculate the gradient image
     scale = 1
@@ -63,7 +77,7 @@ def perim_filter(labels, grad, edge_dist=5, **kwargs):
 
     for p in P:
         xy = p.coords
-        if fmask_er[xy[:,0], xy[:,1]].any():
+        if fmask_er[xy[:,0], xy[:,1]].any(): 
             out[xy[:,0], xy[:,1]] = p.label
 
     return out
@@ -101,8 +115,6 @@ def prethresh_filter(img, img_thresh=90, **kwargs):
     ret, thresh = cv2.threshold(img2, img_thresh, 255, cv2.THRESH_BINARY_INV)
 
     return (thresh, img2)
-
-
 
 def adapt_prethresh_filter(img, block_size=3, **kwargs):
     """ convert to grayscale, gaussian blur, apply threshold, label

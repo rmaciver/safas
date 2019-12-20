@@ -23,6 +23,7 @@ class TrackbarViewer(QObject):
                  pos=(750,50),
                  scale=0.5,
                  params=None,
+                 index=None,
                  **kwargs):
 
         super(TrackbarViewer, self).__init__(**kwargs)
@@ -33,8 +34,10 @@ class TrackbarViewer(QObject):
         self.name = 'trackbar'
         self.pos = pos
         self.scale = scale
-        self.frame_index = 0
-
+        if index is None:
+            self.frame_index = 0
+        else:
+            self.frame_index = index
         self.setup_window()
 
     def setup_window(self):
@@ -46,8 +49,16 @@ class TrackbarViewer(QObject):
                          int(self.size[1]*self.scale),
                          int(self.size[0]*self.scale))
 
-        cv2.createTrackbar('start', self.name, 0, self.size[2], self.on_change)
-        cv2.createTrackbar('end', self.name, self.size[2], self.size[2], self.on_change)
+        cv2.createTrackbar('start', 
+                           self.name, 
+                           0, 
+                           self.size[2], 
+                           self.on_change)
+        cv2.createTrackbar('end', 
+                           self.name, 
+                           self.size[2], 
+                           self.size[2], 
+                           self.on_change)
         self.on_change(1)
 
         self.start = cv2.getTrackbarPos('start', self.name)
@@ -58,13 +69,15 @@ class TrackbarViewer(QObject):
 
     def next_frame(self, **kwargs):
         """ """
+        print('trigger next frame:')
         frame_num = self.frame_index
         frame_num += 1
-        self.on_change(frame_num)
+        #self.on_change(frame_num)
         cv2.setTrackbarPos('start', self.name, int(frame_num))
 
     def on_change(self, trackbarValue):
         """ emit the frame index to the handler """
+        print('triggered on change', trackbarValue)
         self.frame_index_signal.emit(trackbarValue)
 
     def update(self, frame, index, **kwargs):
@@ -72,7 +85,8 @@ class TrackbarViewer(QObject):
             frames from external source are connected here
         """
         if frame is not None:
-            frame = frame.astype(np.uint8) # force to uint8. one function sends int32
+            print('in update, frame is shown, index:', index)
+            frame = frame.astype(np.uint8) # force to uint8. 
             cv2.imshow(self.name, frame)
             self.frame_index = index
 
@@ -80,4 +94,3 @@ class TrackbarViewer(QObject):
         cv2.waitKey(1)
         cv2.destroyAllWindows()
         cv2.waitKey(1)
-        #cv2.destroyWindow('trackbar')

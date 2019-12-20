@@ -12,6 +12,9 @@ import importlib
 import yaml
 
 import numpy as np
+from scipy.spatial import distance
+import pandas as pd
+
 import skimage
 import skimage.io as sio
 from skimage.filters import sobel, gaussian
@@ -24,11 +27,11 @@ from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
 
-import pandas as pd
+
 
 import cv2
 
-from safas.matcher import Matcher
+from safas.matcher import matcher
 from safas.config import write_params, set_dirout
 """
 
@@ -63,11 +66,12 @@ class Tracker(QObject):
         self.frame_count = 0
         self.overlay = None
 
-    def add_frame(self, frame, frame_index, add_all_objects=False, **kwargs):
+    def add_frame(self, frame, frame_index, **kwargs):
         """ filtered binary frames are labelled then added
             frame: <uint8 array>
             frame_index: <int32>
         """
+        print('frame index:', frame_index)
         # simple check in case viewer was scrolled back
         if frame_index not in self.frames:
             if self.frame_count == 0:
@@ -80,8 +84,6 @@ class Tracker(QObject):
 
             P = regionprops(L)
             T= len(P) # do not include the background
-
-            # assume frame is uint8
             C = find_contours(frame, 100)
 
             self.frames[frame_index] = {'frame': frame,
@@ -156,19 +158,33 @@ class Tracker(QObject):
                 'velocity': None}
         self.tracks['id'][id_obj].append(vals)
 
-    def predict_next_all(self, frame, index, **kwargs):
+    def predict_next_all(self, index, **kwargs):
         """ threaded or array func based predictions, rather than
                 loop based in the track_panel gui object"""
-        print('predict all next inside tracker')
+        criteria = self.params['matcher']
 
-    def predict_next(self, frame, index, id_obj, **kwargs):
+        A_props = []
+        A_ids = []
+        
+        for id_obj in self.tracks['id']:
+            A_props.append(self.tracks['id'][id_obj][-1]['prop'])
+            A_ids.append(id_obj)
+            
+        B_props = self.frames[index]['props']
+        B_ids = np.arange(len(B_props))        
+        B_matches = matcher(A_props=A_props, 
+                            A_ids=A_ids, 
+                            B_props=B_props, 
+                            B_ids=B_ids,
+                            criteria=criteria)
+
+        for id_obj, val_new in zip(self.tracks['id'], B_matches):
+            self.update_object_track(index, id_obj=id_obj, id_curr=val_new)
+
+    def predict_next(self, index, id_obj, **kwargs):
         """ """
-        # an easy way to terminate need to terminate after certain length.... 5?
-        print('id_obj:', id_obj)
-
         maxobjs = self.params['improcess']['max_track_len']
         val_open = self.tracks['id'][id_obj][-1]['id_curr']
-        print('max track len:', maxobjs)
 
         if len(self.tracks['id'][id_obj]) < maxobjs:
             p0 = self.tracks['id'][id_obj][-1]['prop'] # most recent one added
@@ -191,8 +207,6 @@ class Tracker(QObject):
 
     def outline_single_new(self, frame, index, val, **kwargs):
         """ make image to be displayed in window for user interaction"""
-        #contours, hierarchy = cv2.findContours(thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
-
         coords = self.frames[index]['props'][val].coords
         frame[coords[:,0], coords[:,1]] = [0, 0, 255] # red
         return (frame, index)
@@ -202,6 +216,8 @@ class Tracker(QObject):
         index -= 1
 
         if index in self.frames:
+            print('index:', index, (index in self.frames))
+            print('val:', val, (val in self.frames[index]['props'][val]))
             coords = self.frames[index]['props'][val].coords
             frame[coords[:,0], coords[:,1]] = [255, 0, 0] # blue
             return (frame, index)
@@ -210,16 +226,14 @@ class Tracker(QObject):
 
     def outline_track(self, frame, index, id_obj, **kwargs):
         """ overlay a single track when selected """
-#        print('outline in the tracker')
         overlay_t = np.zeros_like(frame, dtype=np.uint8)
-
+        alpha = 0.9
         if type(id_obj) == int:
             id_obj = [id_obj]
 
         for id_o in id_obj:
             alpha = 0.9
             for track in self.tracks['id'][id_o]:
-    #            print('track is:', track, track['prop'])
                 xy = track['prop'].coords
                 alpha = alpha*0.9
                 overlay_t[xy[:,0], xy[:,1]] = [70, 255, 50]
@@ -227,38 +241,21 @@ class Tracker(QObject):
         frame = cv2.addWeighted(frame, 1, overlay_t, alpha, 0)
         self.display_frame_signal.emit(frame, index)
 
-    def plot_prop(self, prop, **kwargs):
-        # dump the tracks into pandas file
-        plot_props(self.tracks, prop=prop)
-
-    def plot_prop(self, tracks, prop, ax=None):
-        # plot histogram of a property
-        if ax is None:
-            f, ax = plt.subplots(1,1, dpi=250, figsize=(3.5, 2.2))
-
-        vals = [track[prop] for track in tracks['id']]
-        ax.hist(vals)
-
-        ax.set_xlabel(prop)
-        ax.set_ylabel('counts')
-        plt.tight_layout()
-
-    def save(self):
-
-        # update the velocity if more than one object in track
+    def save(self, filename=None):
+        """ calculate velocity and convert tracks to dataframe format"""
         self.cal_vel()
-        # save tracks to pandas file
+        
         tracks = self.tracks['id']
 
-        # take the first object in each track list
         if self.params['output'] == 0:
             if self.parent is None:
                 self.params = set_dirout(params=self.params)
             else:
                 self.parent.parent.set_output()
 
-        dirout = self.params['dirout']
-
+        dirout = self.params['output']
+        
+        print('dirout:', dirout)
         T = []
         pxcal = self.params['improcess']['pixel_size']
 
@@ -292,9 +289,11 @@ class Tracker(QObject):
 
         # check existing files in dir_out/data
         val =  len(glob(os.path.join(dirout,'data', '*.xlsx')))
-        name = 'floc_props_%d.xlsx' % (val + 1)
+        if filename is None: 
+            name = '%02d_floc_props.xlsx' % (val + 1)
+        if filename is not None: 
+            name = '%02d_' % (val + 1) + str(filename) + '.xlsx'        
         fname = os.path.join(dirout,'data', name)
-        # write to excel file
         df.to_excel(fname)
 
         # also save the params as a yaml
@@ -303,43 +302,65 @@ class Tracker(QObject):
         params = self.params
         write_params(file=yname, params=params)
 
-    def cal_vel(self,):
+    def cal_vel(self, theta_max=45, N=2 ):
         """ cal velocity from a series of centroids
-
-        note: assumption is that centroids occur in sequential frames
-
+              
+            * filter flocs not moving generally downward 
+            * pixel size calibration in um. 
+            * dt is time in seconds
+            * velocity in mm/s
+            * assumption is that centroids occur in sequential frame; forced
+                because when no match is found and -99999 is added
         """
-        # calculated before saving for now. may move to "live" location.
-        # note: mechanism to detected when the frames are not sequential
-        #       i.e. if object is detected in frame 1 and 3, then velocity
-        #            will appear to be double the actual value
-        dt = 1/self.params['improcess']['fps']
+        print('in cal_vel')
+        if 'max_object_angle' in self.params['improcess']: 
+            theta_max = self.params['improcess']['max_object_angle']
+        
+        if 'min_track_len' in self.params['improcess']:
+            N = self.params['improcess']['min_track_len']
 
+        dt = 1/self.params['improcess']['fps']
         T = {}
+        
+        print('dt is:', dt)
         for i in self.tracks['id']:
             track = self.tracks['id'][i]
-
-            if len(track) > 1:
+            print('track length:', len(track))
+            if len(track) >= N:
+                print('track length:', len(track))
                 cents = np.array([t['centroid'] for t in track])
-                disp = []
-                for k in range(len(cents)-1):
-                    dist = np.linalg.norm(cents[(k+1)]-cents[k])
-                    disp.append(dist)
-
-                disp_metric = np.array(disp)*self.params['improcess']['pixel_size']/10**3 # in CM
-                v = disp_metric/dt
-                N = len(v)
-                v_mean = np.mean(v)
-                v_std = np.std(v)
-
-                # convert to metric
-                track[0]['vel_mean'] = v_mean
-                track[0]['vel_std'] = v_std
-                track[0]['vel_N'] = N
-                T[i] = track
+                print('centroids:', cents)
+                dist = np.linalg.norm((cents[1:]-cents[:-1]), axis=1)
+                print('distances:', dist)
+                vect = cents[1:] - cents[:-1]
+                mean_angle = np.mean([angle_between(np.array([1,0]), vt) for vt in vect])
+                print('mean angle:', mean_angle)
+                if mean_angle < theta_max: 
+             
+                    disp_metric = np.array(dist)*self.params['improcess']['pixel_size']/10**3 # in MM
+                    v = disp_metric/dt
+                    Nv = len(v)
+                    v_mean = np.mean(v)
+                    v_std = np.std(v)
+                    track[0]['vel_mean'] = v_mean
+                    track[0]['vel_std'] = v_std
+                    track[0]['vel_N'] = Nv
+                    T[i] = track
 
         self.tracks['id'] = T
 
+
+def unit_vector(vector):
+    # David Wolever https://stackoverflow.com/questions/2827393/angles-between-two-n-dimensional-vectors-in-python/13849249#13849249
+    """ Returns the unit vector of the vector.  """
+    return vector / np.linalg.norm(vector)
+
+def angle_between(v1, v2):
+    """ Returns the angle in radians between vectors 'v1' and 'v2'::
+    """
+    v1_u = unit_vector(v1)
+    v2_u = unit_vector(v2)
+    return np.degrees(np.arccos(np.clip(np.dot(v1_u, v2_u), -1.0, 1.0)))
 
 def test_img():
     img = np.zeros((1000,1000))
@@ -366,10 +387,3 @@ if __name__ == '__main__':
     T.add_frame(frame=t, frame_index=2)
     T.update_object_track(frame_index=2, id_obj=0, id_curr=2)
     T.save()
-
-
-
-
-#    frame = np.zeros((1000,1000,3))
-#    contours = [np.array([[1,1],[10,50],[50,50]], dtype=np.int32) , np.array([[99,99],[99,60],[60,99]], dtype=np.int32)]
-#    contourimg = cv2.drawContours(frame, contours, -1, (255, 0, 0), 3)

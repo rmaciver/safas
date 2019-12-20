@@ -17,25 +17,38 @@ from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
 
 class MakePlot(QMainWindow):
-    def __init__(self, parent=None, dirout=None, *args, **kwargs):
+    def __init__(self, parent=None, basedir=None, file=None, *args, **kwargs):
         super(MakePlot, self).__init__(*args, **kwargs)
 
-        print('dirout is:', dirout)
         self.parent = parent
-        self.dirout = dirout
-        self.read_file()
-        print('read the files')
+        self.file = file
+        self.basedir = basedir
+        
         self.setWindowTitle('plot gui')
         #app.aboutToQuit.connect(self.exit_dialog)
         self.layout = QGridLayout()
         w = QWidget()
         w.setLayout(self.layout)
         self.setCentralWidget(w)
-        self.setup_window()
-        print('window was setup')
-        self.setGeometry(100, 100, 50, 100)
-        self.show()
+        
 
+        if file is None:
+            self.get_file()
+            
+        self.read_file()
+        
+        if self.dataframe is not None: 
+            self.setup_window()
+            self.setGeometry(100, 100, 50, 100)
+            self.show()
+        
+    def get_file(self):
+        tx = self.basedir
+        if tx == 0: 
+            tx = None
+        file, spec = QFileDialog.getOpenFileName(self, "open file", tx, "files (*.xlsx)")
+        self.file = file
+        
     def setup_window(self):
         top_layout_2 = QGridLayout()
         status_box = QGroupBox('')
@@ -79,9 +92,7 @@ class MakePlot(QMainWindow):
             self.yvar = s.currentText()
 
     def read_file(self):
-        # default is to load last saved file
-        files = glob(os.path.join(self.dirout, 'data','*.xlsx'))
-        self.dataframe = pd.read_excel(files[-1])
+        self.dataframe = pd.read_excel(self.file)
 
     def make_plot(self):
         f, ax = plt.subplots(1,1, figsize=(3.5, 2.2), dpi=250)
@@ -111,7 +122,7 @@ class MakePlot(QMainWindow):
         self.f.savefig(fname, dpi=900)
 
     def exit_dialog(self, event=None):
-        buttonReply = QMessageBox.question(self, 'PyQt5 message', "Close parameters control dialog?", QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
+        buttonReply = QMessageBox.question(self, 'PyQt5 message', "Close plot dialog?", QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
 
         if buttonReply == QMessageBox.Yes:
             self.destroy()

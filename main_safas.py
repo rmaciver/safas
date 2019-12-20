@@ -17,3 +17,4 @@ if __name__ == '__main__':
     app = QApplication([])
     window = MainPanel(config_file)
     app.exec_()
+

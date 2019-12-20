@@ -4,110 +4,50 @@
 Matcher compares position and aera of tracked object to all other objects
     in the new frame
 
-Notes:
-    * consider other morphological properties or velocity
-    * consider other weighting strategies
+    Note: need to improve the comments/ documentation here.
 
 """
-from skimage.measure import regionprops, label
-
 import numpy as np
+from skimage.measure import regionprops
+from scipy.spatial.distance import cdist
 
-KEYS = ['area',
-        'centroid',
-        'major_axis_length',
-        'minor_axis_length',
-        'orientation',
-        'perimeter']
+def matcher(A_props, A_ids, B_props, B_ids, criteria):
+    """ find best match of tracked object in the new frame"""
+    err = rank(A_props, B_props, criteria)
+    B_matches = match(err, criteria['error_threshold'], A_ids, B_ids)
+    return B_matches
 
-class Matcher():
+def rank(A_props, B_props, criteria):
+    """ calculate the error of each new object compared to most
+            recent object added to the track """
+    err = np.full((len(A_props), len(B_props)), 0, dtype=np.float64)
 
-    def __init__(self, p0=None, props=None, criteria=None, **kwargs):
-        """
-        track_data: identified (+) instances of the object
-        props: regionprops info for current image
-        """
-        self.p0 = p0
-        self.obj0 = None
-        self.props = props
+    if 'distance' in criteria:
+        dist = cal_cdist(A_props, B_props)
+        err += dist*criteria['distance']
 
-        if criteria is not None:
-            self.criteria = criteria
-        else:
-            self.criteria = {'area': 1,
-                             'distance': 1,
-                             'squared': True,
-                             'error_threshold': 5000,
-                             }
+    if 'area' in criteria:
+        area = cal_carea(A_props, B_props)
+        err += area*criteria['area']
 
-    def rank_and_match(self):
-        self.rank()
-        # print('try to match')
-        self.match()
+    if 'squared' in criteria:
+        if criteria['squared']:
+            err = err**2
+    return err
 
-        # print('obj0 is:', self.obj0)
-        if self.obj0 is not None:
-            return self.obj0
+def match(err, error_threshold, A_ids, B_ids):
+    errmin = np.argmin(err, axis=1)
+    B_matches = B_ids[errmin]
+    mask = errmin < error_threshold
+    B_matches[np.where(~mask)] = -99999 # easier to deal with than nan or None
+    return B_matches
 
-        if self.obj0 is None:
-            return None
+def cal_cdist(A_props, B_props):
+    A_cent =  np.array([prop.centroid for prop in A_props])
+    B_cent =  np.array([prop.centroid for prop in B_props])
+    return cdist(A_cent, B_cent)
 
-    def rank(self):
-        """ compared p0 size and distance to objects in the new frame """
-        p0 = self.p0
-        props = self.props
-
-        err = np.full(len(props), 0, dtype=np.float64)
-
-        if 'distance' in self.criteria:
-            dist = cal_dist(p0, props)
-            # print('distances:', dist)
-            err += dist*self.criteria['distance']
-
-        if 'area' in self.criteria:
-            area = cal_area(p0, props)
-            # print('areas:', area)
-            err += area*self.criteria['area']
-
-        if 'squared' in self.criteria:
-            if self.criteria['squared']:
-                err = err**2
-
-        print('total error:', err)
-        self.err = err
-
-    def match(self):
-        """ return best match if below error threshold """
-        index = np.argmin(self.err)
-        # print('index in match:', index)
-        # print('error is:', self.err[index])
-        # print('err thresh is:', self.criteria['error_threshold'])
-        if self.err[index] < self.criteria['error_threshold']:
-            print('error index:', self.err[index])
-            self.obj0 = index
-        else:
-            self.obj0 = None
-        # print('in match, obj0 is:', self.obj0)
-
-def cal_dist(p0, props):
-    dist = np.array([p.centroid for p in props]) - p0.centroid
-    dist = np.linalg.norm(dist, axis=1)
-    dist = dist.astype(np.float64)
-    return dist
-
-def cal_area(p0, props):
-    area = np.array([p.area for p in props]) - p0.area
-    area = np.abs(area)
-    return area
-
-if __name__ == '__main__':
-    T = test_img()
-    L = label(T)
-    P = regionprops(L)
-
-
-    p0 = P[2]
-
-    M = Matcher()
-#    err, vals = M.rank_props()
-    err = cal_dist(p0, P)
+def cal_carea(A_props, B_props):
+    A_area = np.array([prop.area for prop in A_props])
+    B_area =  np.array([prop.area for prop in B_props])
+    return np.abs(B_area - A_area.reshape((A_area.shape[0], 1)))

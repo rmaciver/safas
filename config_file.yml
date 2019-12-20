@@ -1,7 +1,7 @@
 basein: C:\Users\Ryan\Desktop\Data\raw
-baseout: C:\Users\Ryan\Desktop\Data\pro
+baseout: C:\Users\Ryan\Desktop\Data\pro\por_graviprobe
 
-input: C:\Users\Ryan\Desktop\002_RT2_01_DII_12024_00.avi
+input: C:\Users\Ryan\Desktop\Data\raw\2019-11-27_mix_samples_graviprobe_2\raw\001_part1_mix_samples_graviprobe_2.avi
 output: 0
 
 tracker_control:
@@ -9,8 +9,8 @@ tracker_control:
     new: True
     open: False
     tracks: True
-  mode: manual
-  
+  mode: find-all
+
 improcess:
   mode: find-all
   running: False
@@ -19,12 +19,14 @@ improcess:
   size: None   # dimensions of image. [height, width, length]
   filter: sobel_focus
   max_track_len: 50
+  min_track_len: 3
+  max_object_angle: 45
   kwargs:
     pre_filter: True
-    focus_filter: False
-    clearborder_filter: False
-    img_thresh: 150
-    edge_thresh: 30
+    focus_filter: True
+    clearborder_filter: True
+    img_thresh: 100
+    edge_thresh: 150
     edge_dist: 1
 
 matcher:

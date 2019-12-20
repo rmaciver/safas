@@ -15,28 +15,6 @@ data_dir = osp.abspath(osp.dirname(__file__))
 
 __all__ = ['mudflocs']
 
-def load(f, as_gray=False):
-    """Load an image file located in the data directory.
-    Parameters
-    ----------
-    f : string
-        File name.
-    as_gray : bool, optional
-        Whether to convert the image to grayscale.
-    Returns
-    -------
-    img : ndarray
-        Image loaded from ``skimage.data_dir``.
-    Notes
-    -----
-    This functions is deprecated and will be removed in 0.18.
-    """
-    warn('This function is deprecated and will be removed in 0.18. '
-         'Use `skimage.io.load` or `imageio.imread` directly.',
-         stacklevel=2)
-    return _load(f, as_gray=as_gray)
-
-
 def _load(f, as_gray=False):
     """Load an image file located in the data directory.
     Parameters
@@ -55,6 +33,10 @@ def _load(f, as_gray=False):
     from skimage.io import imread
     return imread(_os.path.join(data_dir, f), plugin='pil', as_gray=as_gray)
 
+def noisy():
+    """Noisy gray level floc image
+    """
+    return _load("noisy.png")
 
 def mudflocs():
     """Gray-level "mudflocs" image.

@@ -198,6 +198,7 @@ class MainPanel(QMainWindow):
                 text = str(text)
                 text = text.replace(' ', '_')
                 self.config.set_output(dir_name=text)
+                
 
     def update_status(self, line):
         self.stream_status.setText(line)

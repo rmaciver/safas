@@ -48,9 +48,7 @@ class Handler(QObject):
             self.params = params
 
         self.cap = None
-
         self.frame_index = 0
-
         self.frame_count = 0
 
     def setup(self):
@@ -67,7 +65,8 @@ class Handler(QObject):
 
     def open_vidreader(self):
         file = self.params['input']
-
+        print('open the video again')
+        print('input is:', file)
         if not os.path.isfile(file):
             return None
         else:
@@ -80,7 +79,7 @@ class Handler(QObject):
             length = int(self.cap.get(cv2.CAP_PROP_FRAME_COUNT))
 
             # may want to allow user to override fps if not correct in video header
-            fps = int(self.cap.get(cv2.CAP_PROP_FPS))
+            fps = self.cap.get(cv2.CAP_PROP_FPS)
 
             # update params
             self.params['improcess']['fps'] = fps
@@ -99,10 +98,10 @@ class Handler(QObject):
 
     def get_frame(self, index, mode=None, params=None, **kwargs):
         """ viewer callback, manual mode """
+        print('in handler')
         self.cap.set(cv2.CAP_PROP_POS_FRAMES, index)
         err, frame = self.cap.read()
         self.frame_index = index
-
         if mode == 'test':
             label_frame, frame = self.imfilter(src=frame, **params)
         else:

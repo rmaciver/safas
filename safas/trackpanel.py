@@ -9,6 +9,9 @@ from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
 
+import os
+import pandas as pd
+
 from safas.paramsdialog import ParamsDialog
 from safas.matcherdialog import MatcherDialog
 from safas.makeplot import MakePlot
@@ -42,8 +45,7 @@ class TrackPanel(QMainWindow):
         self.setGeometry(100, 1500, 50, 10)
         self.show()
         self.params_to_gui()
-        print('track panel init')
-
+ 
     def setup(self,):
         self.tracks = TrackLists(parent=self.parent)
         self.click_start()
@@ -53,22 +55,7 @@ class TrackPanel(QMainWindow):
         top_layout_2 = QGridLayout()
         ctrl_groupbox = QGroupBox('modes')
 
-        cb1 = QRadioButton()  # new
-        # cb2 = QRadioButton()  # open
-        # cb3 = QRadioButton() # tracks
-
-        # top_layout_2.addWidget(cb3, 0, 0)
-        # top_layout_2.addWidget(QLabel('manual'), 0, 1)
-        # cb3.setChecked(False)
-        # cb3.mode = "manual"
-        # cb3.toggled.connect(self.mode_radio_clicked)
-        #
-        # top_layout_2.addWidget(cb2, 0, 4)
-        # top_layout_2.addWidget(QLabel('find-one'), 0, 5)
-        # cb2.setChecked(True)
-        # cb2.mode = "find-one"
-        # cb2.toggled.connect(self.mode_radio_clicked)
-
+        cb1 = QRadioButton()  
         top_layout_2.addWidget(cb1, 0, 0)
         top_layout_2.addWidget(QLabel('find-all'), 0, 1)
         cb1.setChecked(True)
@@ -77,8 +64,7 @@ class TrackPanel(QMainWindow):
 
         self.mode_boxes = {'manual': None,
                            'find-one': None,
-                           'find-all': cb1,
-                           }
+                           'find-all': cb1,}
 
         ctrl_groupbox.setLayout(top_layout_2)
         self.layout.addWidget(ctrl_groupbox, 0, 3)
@@ -96,16 +82,6 @@ class TrackPanel(QMainWindow):
 
     def params_to_gui(self):
         """ """
-        # mode is set to find-all automaticall for now.
-        # the other options are disabled.
-
-        # if 'mode' in self.parent.params['improcess']:
-        #     mode = self.parent.params['improcess']['mode']
-        #     if mode in self.mode_boxes:
-        #         for md in self.mode_boxes:
-        #             self.mode_boxes[md].setChecked(False)
-        #         self.mode_boxes[mode].setChecked(True)
-
         if 'filter' in self.parent.params['improcess']:
             filt = self.parent.params['improcess']['filter']
             index = self.filter_combo.findText(filt)
@@ -145,16 +121,19 @@ class TrackPanel(QMainWindow):
         match_dialog = QPushButton('match criteria', clicked=self.match_control_panel)
 
         save = QPushButton('save', clicked=self.click_save)
+        merge = QPushButton('merge', clicked=self.click_merge)
         plot = QPushButton('plot', clicked=self.make_plot)
         plot.setEnabled(False)
 
         self.buttons['save'] = save
+        self.buttons['merge'] = merge
         self.buttons['plot'] = plot
 
         top_layout_2.addWidget(match_dialog)
         top_layout_2.addWidget(list_tracks)
         top_layout_2.addWidget(clear_tracks)
         top_layout_2.addWidget(save)
+        top_layout_2.addWidget(merge)
         top_layout_2.addWidget(plot)
         ctrl_groupbox.setLayout(top_layout_2)
         self.layout.addWidget(ctrl_groupbox, 0, 1)
@@ -179,7 +158,6 @@ class TrackPanel(QMainWindow):
         self.buttons['pause'] = pause
         self.buttons['start'] = start
 
-
     def match_control_panel(self):
         self.matcherdialog = MatcherDialog(parent=self, params=self.parent.params['matcher'])
         self.matcherdialog.params_update_signal.connect(self.matcher_params_update)
@@ -199,8 +177,77 @@ class TrackPanel(QMainWindow):
 
     def click_save(self):
         """ """
-        self.parent.handler.tracker.save()
-        self.buttons['plot'].setEnabled(True)
+        Q='Frame rate [fps]:'
+        defval = self.parent.params['improcess']['fps']
+        minval = 0
+        maxval = 1000
+        d = self.getDouble(Q, defval, minval, maxval)
+        self.parent.params['improcess']['fps'] = d
+
+        param='Pixel size [um]:'
+        defval = self.parent.params['improcess']['pixel_size']
+        minval = 0
+        maxval = 1000
+        d = self.getDouble(param, defval, minval, maxval)
+        self.parent.params['improcess']['pixel_size'] = d
+        
+        # offer new vs append
+        msgBox = QMessageBox()
+        msgBox.setText('Enter file name?')
+        msgBox.addButton(QPushButton('Yes'), QMessageBox.YesRole)
+        msgBox.addButton(QPushButton('No'), QMessageBox.NoRole)
+        msgBox.addButton(QPushButton('Cancel'), QMessageBox.RejectRole)
+        ret = msgBox.exec_()
+        
+        if ret == 0:
+            text, okPressed = QInputDialog.getText(self, "Enter filename","Name:", QLineEdit.Normal, "")
+
+        if ret == 1:
+            text = None
+            
+        if ret == 1 or ret ==0: 
+             self.parent.handler.tracker.save(filename=text)    
+             self.buttons['plot'].setEnabled(True)
+             
+    def click_merge(self):
+         """ click files to merge """
+         baseout = self.parent.params['baseout']
+         ret, spec = QFileDialog.getOpenFileNames(self, 
+                                                  caption="Select files to merge", 
+                                                  directory=baseout, 
+                                                  filter='*.xlsx')
+
+         if len(ret) > 0:
+             dfs = [pd.read_excel(file) for file in ret]
+             result = pd.concat(dfs)
+
+             text, okPressed = QInputDialog.getText(self, 
+                                                    "Enter filename for merged output:",
+                                                    "Name:", 
+                                                    QLineEdit.Normal, 
+                                                    "")
+             
+             # save the merged results  
+             dirout = self.parent.params['output']
+             print('dirout:', dirout)
+             name = text + '.xlsx'
+             print('name:', name)
+             fname = os.path.join(dirout,'data', name)
+             print('fname is:', fname)
+             result.to_excel(fname)
+
+    def getDouble(self, param, defval, minval, maxval):
+        print('in get doube:', param, defval, minval, maxval)
+        d, okPressed = QInputDialog.getDouble(self, 
+                                              "Confirm value ", 
+                                              param, 
+                                              defval, 
+                                              minval, 
+                                              maxval, 
+                                              2)
+        if okPressed:
+            print('value is:', d)
+            return d
 
     def click_next(self):
         """ """
@@ -222,8 +269,10 @@ class TrackPanel(QMainWindow):
         """ read the output and plot results in saved dataframe
         * must be at least one dataframe saved
         """
-        self.plotwin = MakePlot(parent=self, dirout=self.parent.params['dirout'])
-
+        basedir=self.parent.params['output']
+        print('basedir is:', basedir)
+        self.plotwin = MakePlot(parent=self, basedir=basedir)
+        
     def click_params_dialog(self):
         """ """
         imfilter = self.parent.handler.imfilter
@@ -238,8 +287,14 @@ class TrackPanel(QMainWindow):
 
     def filter_params_update(self, params, **kwargs):
         """ update params from user input """
+        # need a work around to get pass the NN through
+        temp_params = self.parent.params['improcess']['kwargs']
         self.parent.params['improcess']['kwargs'] = params
-
+        
+        if 'net' in temp_params: 
+            net = temp_params['net']
+            self.parent.params['improcess']['kwargs']['net'] = net
+            
     def matcher_params_update(self, params, **kwargs):
         """ update params from user input """
         self.parent.params['matcher'] = params
@@ -325,15 +380,11 @@ class TrackLists(QMainWindow):
         top_layout_2.addWidget(self.open_objs, 1, 1)
         top_layout_2.addWidget(self.new_objs, 1, 2)
 
-        # this hides the middle columne of "open" objects, which are the most
-        #  recent objects added to the track. this is useful for manual
-        # linking of objects but is confusing for the user
         hide_open = True
         if hide_open:
             self.open_objs.hide()
             LF.hide()
-
-
+            
         ctrl_groupbox.setLayout(top_layout_2)
         self.layout.addWidget(ctrl_groupbox, 1, 1)
 
@@ -342,26 +393,13 @@ class TrackLists(QMainWindow):
         self.list_new()
         self.list_open()
 
-        frame = self.parent.handler.contour_img
         index = self.parent.handler.frame_index
         tracker = self.parent.handler.tracker
 
-        # override here, only mode available to user
-        self.parent.params['tracker_control']['mode'] = 'find-all'
-
         if self.parent.params['tracker_control']['mode'] == 'find-all':
             """ find best match for each object added to track list """
-            # try to match open with new, link automatically
             if len(tracker.tracks['id']) > 0:
-                print('there are N tracks:', len(tracker.tracks['id']))
-                for val_track in tracker.tracks['id']:
-                    print('current track:', val_track)
-                    val_new, val_open = self.parent.handler.tracker.predict_next(frame=frame,
-                                                                           index=index,
-                                                                           id_obj=val_track)
-                    print('returned vals:', val_new, val_open)
-                    tracker.update_object_track(index, id_obj=val_track, id_curr=val_new)
-
+                tracker.predict_next_all(index=index)
                 self.status_update_signal.emit('finished matching')
             else:
                 self.status_update_signal.emit('no objects to track')

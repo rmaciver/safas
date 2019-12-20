@@ -53,12 +53,12 @@ def set_dirout(params=None, dir_name=None, folders=None, **kwargs):
     
     [os.makedirs(os.path.join(dir_out,pth)) for pth in folders]
         
-    params['dirout'] = dir_out
+    params['output'] = dir_out
                                               
     if 'params_file' in params: 
-        copy_params(params['params_file'], params['dirout'])
+        copy_params(params['params_file'], params['output'])
     
-    params['readme'] = readme(params['dirout'])
+    params['readme'] = readme(params['output'])
     values = [('Image trial info'),('File timestamp: ' + time_stamp)]
     updatereadme(params['readme'].name, values)
         
