@@ -9,6 +9,7 @@ import os as _os
 import skimage
 import numpy as _np
 from warnings import warn
+import pandas as pd
 
 import os.path as osp
 data_dir = osp.abspath(osp.dirname(__file__))
@@ -93,3 +94,13 @@ def noisyfloc():
         noisyfloc image.
     """
     return _load("noisyfloc.png")
+
+def por_flocs():
+    """ results from video measurement of the POR sample
+
+
+    Returns
+    -------
+    pandas data frame
+    """
+    return pd.excel_read('por_flocs.xlsx')

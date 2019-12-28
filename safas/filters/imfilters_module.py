@@ -12,47 +12,15 @@ import numpy as np
 from safas import data
 import matplotlib.pyplot as plt
 
-def focus_filter(labels, img, edge_thresh=30, edge_dist=2, edge_ratio=90, **kwargs):
+def focus_filter(labels, img, edge_thresh=30, edge_dist=2, **kwargs):
     """ remove out of focus flocs by combining labels and gradient images """
-    print('edge thresh:', edge_thresh)
-    print('edge dist:', edge_dist)
-    print('edge ratio:', edge_ratio)
-    
     grad = cal_grad_img(img, edge_thresh=edge_thresh)
+    labels = perim_filter(labels, grad, edge_dist=edge_dist)
     
-    labels = perim_filter(labels, 
-                          grad, 
-                          edge_dist=edge_dist, 
-                          edge_ratio=edge_ratio)
-
     return labels
 
-def nn_edge_filter(labels, gray, hed, edge_dist=2, **kwargs):
-    """ remove out of focus flocs by combining labels and gradient images """
-    labels = perim_filter(labels, hed, edge_dist=edge_dist)
-    return labels
-
-    
-def cal_grad_img(img, edge_thresh=30):
-    # calculate the gradient image
-    scale = 1
-    delta = 0
-    ddepth = cv2.CV_16S
-
-    grad_x = cv2.Sobel(img, ddepth, 1, 0, ksize=3, scale=scale, delta=delta, borderType=cv2.BORDER_DEFAULT)
-    grad_y = cv2.Sobel(img, ddepth, 0, 1, ksize=3, scale=scale, delta=delta, borderType=cv2.BORDER_DEFAULT)
-    abs_grad_x = cv2.convertScaleAbs(grad_x)
-    abs_grad_y = cv2.convertScaleAbs(grad_y)
-
-    grad = cv2.addWeighted(abs_grad_x, 0.5, abs_grad_y, 0.5, 0)
-    N, filt = cv2.threshold(grad, edge_thresh, 255, cv2.THRESH_BINARY)
-    return filt
-
-def perim_filter(labels, grad, edge_dist=5, **kwargs):
+def perim_filter(labels, grad, edge_dist=5, show=False, **kwargs):
     """ remove out of focus flocs by combining labels and gradient images
-
-    ** does not seem to perform well for lower extent flocs **
-
     """
     perim = np.zeros_like(labels, dtype=np.uint8)
     perim[labels > 0] = 255
@@ -79,12 +47,32 @@ def perim_filter(labels, grad, edge_dist=5, **kwargs):
         xy = p.coords
         if fmask_er[xy[:,0], xy[:,1]].any(): 
             out[xy[:,0], xy[:,1]] = p.label
-
+        
+    if show:
+         f, ax = plt.subplots(1,3)
+         ax[0].imshow(perimb)
+         ax[1].imshow(fmask)
+         ax[2].imshow(out)
+    
     return out
+   
+def cal_grad_img(img, edge_thresh=30):
+    # calculate the gradient image
+    scale = 1
+    delta = 0
+    ddepth = cv2.CV_16S
+
+    grad_x = cv2.Sobel(img, ddepth, 1, 0, ksize=3, scale=scale, delta=delta, borderType=cv2.BORDER_DEFAULT)
+    grad_y = cv2.Sobel(img, ddepth, 0, 1, ksize=3, scale=scale, delta=delta, borderType=cv2.BORDER_DEFAULT)
+    abs_grad_x = cv2.convertScaleAbs(grad_x)
+    abs_grad_y = cv2.convertScaleAbs(grad_y)
+
+    grad = cv2.addWeighted(abs_grad_x, 0.5, abs_grad_y, 0.5, 0)
+    N, filt = cv2.threshold(grad, edge_thresh, 255, cv2.THRESH_BINARY)
+    return filt
 
 def clearedge_filter(labels):
     """ clear objects touching edge """
-
     x = np.arange(0, labels.shape[1])
     y = np.arange(0, labels.shape[0])
 
@@ -100,64 +88,19 @@ def clearedge_filter(labels):
 
 def prethresh_filter(img, img_thresh=90, **kwargs):
     """ convert to grayscale, gaussian blur, apply threshold, label
-
-    ** note: THRESH_BINARY_INV for dark objects in bright field **
-
-    """
-    # convert to grayscale and de-noise with gaussian blur
+    note: THRESH_BINARY_INV for dark objects in bright field """
     if img.ndim == 3:
         img2 = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
     if img.ndim == 2:
         img2 = img.copy()
 
     img2 = cv2.GaussianBlur(img2, (3, 3), 0)
-    # apply a threshold value to convert grayscale image to binary image
     ret, thresh = cv2.threshold(img2, img_thresh, 255, cv2.THRESH_BINARY_INV)
 
     return (thresh, img2)
 
-def adapt_prethresh_filter(img, block_size=3, **kwargs):
-    """ convert to grayscale, gaussian blur, apply threshold, label
-
-    ** note: THRESH_BINARY_INV for dark objects in bright field **
-
-    """
-    # convert to grayscale and de-noise with gaussian blur
-    if img.ndim == 3:
-        img2 = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-    if img.ndim == 2:
-        img2 = img.copy()
-
-    img2 = cv2.GaussianBlur(img2, (3, 3), 0)
-    thresh = cv2.adaptiveThreshold(img2.copy(),
-                                   255,
-                                   cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
-                                   cv2.THRESH_BINARY_INV,
-                                   block_size,
-                                   2)
-
-    return (thresh, img2)
-
-def grad_prethresh_filter(img,  **kwargs):
-    """ convert to grayscale, gaussian blur, apply threshold, label
-
-    ** note: THRESH_BINARY_INV for dark objects in bright field **
-
-    """
-    # convert to grayscale and de-noise with gaussian blur
-    if img.ndim == 3:
-        img2 = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-    if img.ndim == 2:
-        img2 = img.copy()
-
-    img2 = cv2.GaussianBlur(img2, (3, 3), 0)
-
-
-    return (thresh, img2)
-
 def marker_based_watershed(img, thresh, dist_factor=0, **kwargs):
-    """
-    Apply marker based watershed transform the pre-thresholded image
+    """ Apply marker based watershed transform the pre-thresholded image
     Refer to: https://docs.opencv.org/3.4/d3/db4/tutorial_py_watershed.html
     dist_factor may be increased from 0 to 1.
     """
@@ -168,6 +111,7 @@ def marker_based_watershed(img, thresh, dist_factor=0, **kwargs):
     sure_bg = cv2.dilate(opening,kernel,iterations=3)
     # Finding sure foreground area
     dist_transform = cv2.distanceTransform(opening,cv2.DIST_L2, 5)
+    dist_factor = dist_factor/100 # note: input as integer, but float used
     ret, sure_fg = cv2.threshold(dist_transform, dist_factor*dist_transform.max(), 255, 0)
     # Finding unknown region
     sure_fg = np.uint8(sure_fg)
@@ -196,47 +140,6 @@ def add_contours(img, labels, contour_color, contour_thickness=1, **kwargs):
     contourimg = cv2.drawContours(img, contours, -1, contour_color, contour_thickness)
 
     return contourimg
-
-def nn_perim_filter(labels, grad, edge_dist, show=False, **kwargs):
-    """ remove out of focus flocs by combining labels and gradient images
-
-    ** does not seem to perform well for lower extent flocs **
-
-    """
-    perim = np.zeros_like(labels, dtype=np.uint8)
-    perim[labels > 0] = 255
-    kernel = np.ones((edge_dist, edge_dist), np.uint8)
-    erosion = perim.copy()
-    erosion = cv2.erode(erosion, kernel, iterations=1)
-    perim -= erosion
-
-    # convet to bool for & operation
-    perimb = perim > 0
-    gradb = grad > 0
-
-    fmask = perimb & gradb
-
-    # erode flood mask to remove marginally focused
-    kernel = np.ones((1, 1), np.uint8)
-    fmask_er = fmask.astype(np.uint8).copy()*255
-    fmask_er = cv2.morphologyEx(fmask_er, cv2.MORPH_OPEN, kernel)
-
-    print('labels before:', len(np.unique(labels)))
-    P = regionprops(labels)
-    out = np.zeros_like(labels, np.uint8)
-
-    for p in P:
-        xy = p.coords
-        if fmask_er[xy[:,0], xy[:,1]].any():
-            out[xy[:,0], xy[:,1]] = p.label
-    print('labels after:', len(np.unique(out)))
-    if show:
-        f, ax = plt.subplots(1,3)
-        ax[0].imshow(perimb)
-        ax[1].imshow(fmask)
-        ax[2].imshow(out)
-    return out
-
 
 if __name__ =='__main__':
     print('test the focus_filter')

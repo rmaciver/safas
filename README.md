@@ -24,11 +24,6 @@ The main modules are:
 
 * **GPU-enabled.** Several filters in safas are GPU-enabled, through OpenCV with OpenCL, if the software environment is configured correctly during installation.
 
-## Installation
-safas is a Python package and has several dependencies.
-
-An .exe compatible with Windows 10 is available, please contact the maintainer of this project.
-
 ### Setup with Conda package manager
 Setup from the environment file with Conda will create an environment called safas_env:
 ```shell
@@ -38,36 +33,17 @@ Activate the environment:
 ``` shell
 conda activate safas_env
 ```
-### System-wide installation with pip
-It is not recommended to make a system-wide installation as this may cause conflicts with other software that uses the same Python environment. However, this avoids having to deal with an additional package manager. If you don't have many other Python packages and do not plan to do development work with safas, then use this method.
 
-
-
-
-## Setup
-This will describe:
-* configure the default paths
-* setting the parameters file
-* making safas-gui a callable command, i.e. making a CLI for safas
-
-## Use
-Can interact with safas in several ways.
-* Use the GUI to direcly analyze videos.
-* Use the filters directly on images to test new filter design.
-
-To use the gui.py:
-What buttons need to be pressed for analysis.
-
-Run the GUI from the safas folder:
 ``` shell
-python gui.py
+python setup.py install
 ```
 
+### Use
 
 
-**GPU-enabled OpenCV in Windows**
 
-To take advantage of GPU processing (i.e. faster processing, enhanced user experience), an OpenCL-enabled version of OpenCV is required. At the time of writing, the pip or conda package managers install OpenCV without OpenCL enabled. To enable GPU processing in OpenCV in Windows:
+### GPU-enabled OpenCV in Windows
+OpenCV4 was used during development. For Windows, this is one way to install GPU-enabled OpenCV:
 
 1. Confirm whether any previous installation of OpenCV is OpenCL-enabled. In a Python shell:
 ``` shell

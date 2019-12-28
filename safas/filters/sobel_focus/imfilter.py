@@ -26,7 +26,6 @@ from safas.filters.imfilters_module import (focus_filter,
 define_args = {'img_thresh': [np.int, [0, 255, 120]],
                'edge_thresh': [np.int, [0, 255, 120]],
                'edge_distance': [np.int, [0,9, 1]],
-               'edge_ratio': [np.int, [0,100, 90]],
                'apply_focus_filter': [np.bool, [True, False, True]],
                'apply_clearedge_filter': [np.bool, [True, False, True]],
                'contour_thickness': [np.int, [1, 4, 1]]}
@@ -39,7 +38,6 @@ def imfilter(src,
             img_thresh=100,
             edge_thresh=40,
             edge_distance=2,
-            edge_ratio=90,
             apply_focus_filter=True,
             apply_clearedge_filter=True,
             contour_thickness=1,
@@ -50,7 +48,7 @@ def imfilter(src,
     ret, labels = cv2.connectedComponents(thresh)
 
     if apply_focus_filter:
-       labels = focus_filter(labels, gray, edge_thresh, edge_ratio)
+       labels = focus_filter(labels, gray, edge_thresh)
 
     if apply_clearedge_filter:
         labels = clearedge_filter(labels)
@@ -68,7 +66,7 @@ if __name__ == '__main__':
     from safas import data
 
     params = {'img_thresh': 150,
-               'edge_thresh': 30,
+               'edge_thresh': 140,
                'edge_distance': 1,
                'apply_focus_filter': True,
                'apply_clearedge_filter': True,
@@ -82,6 +80,4 @@ if __name__ == '__main__':
     ax[0].imshow(labels)
     ax[1].imshow(contour_img)
 
-    from skimage.measure import regionprops
 
-    P = regionprops(labels)

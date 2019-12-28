@@ -1,0 +1,3 @@
+include safas/config.yml
+include safas/data/*.png
+include safas/data/*.xlsx
