@@ -1,5 +1,8 @@
 site_name: Safas
 
+theme:
+  name: 'rtd-dropdown'
+  
 nav:
 - Overview: 'index.md'
 - Setup: 'setup.md'
