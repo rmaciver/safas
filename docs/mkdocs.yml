@@ -1,6 +1,6 @@
 site_name: Safas
 
-theme: readthedocs
+theme: 'readthedocs'
 
 nav:
 - Overview: 'index.md'
