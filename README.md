@@ -6,6 +6,10 @@ A Python module for processing and interpretation of images and videos of flocs,
 ## Overview
 This package permits the direct analysis of images and videos of flocs. Size, morphology and settling rate information may be captured and saved in an easily accessible format. Several features of this package are documented in Jupyter notebooks in the notebooks directory, including how to use the filters and visualizing the results.
 
+Documentation for this software may be found here:
+
+safas.readthedocs.io
+
 The main modules are:
 
 * **gui** and **trackpanel** contain components for visualization, image processing control, and object selection.
