@@ -1,1 +1,8 @@
 site_name: Safas
+
+nav:
+- Overview: 'index.md'
+- Setup: 'setup.md'
+- About:
+    - 'License': 'license.md'
+    - 'Notes': 'notes.md'
