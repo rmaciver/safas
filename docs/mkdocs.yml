@@ -1,11 +1,13 @@
 site_name: Safas
 
-theme:
-      name: readthedocs
+theme: readthedocs
+
 nav:
 - Overview: 'index.md'
 - Installation: 'installation.md'
+- GUI overview: 'gui.md'
 - Use: 'use.md'
+- Technical notes: 'technotes.md'
 - Development: 'development.md'
 - About:
     - 'License': 'about/license.md'
