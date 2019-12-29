@@ -4,7 +4,10 @@ theme:
       name: readthedocs
 nav:
 - Overview: 'index.md'
-- Setup: 'setup.md'
+- Installation: 'installation.md'
+- Use: 'use.md'
+- Development: 'development.md'
 - About:
-    - 'License': 'license.md'
-    - 'Notes': 'notes.md'
+    - 'License': 'about/license.md'
+    - 'Notes': 'about/notes.md'
+- FAQ: 'faq.md'
