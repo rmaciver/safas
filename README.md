@@ -3,10 +3,6 @@ Safas is **s**edimentation **a**nd **f**loc **a**nalysis **s**oftware, a Python 
 
 This package permits the direct analysis of images and videos of flocs. Size, morphology and settling rate information may be measured from videos and saved in an easily accessible format.
 
-The project page is here:
-
-https://rmaciver.github.io/safas/
-
 Documentation for the installation and use of this software may be found here:
 
 https://safas.readthedocs.io/en/latest/
