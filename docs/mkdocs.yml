@@ -1,7 +1,7 @@
 site_name: Safas
 
-theme: 'readthedocs'
-
+theme:
+      name: readthedocs
 nav:
 - Overview: 'index.md'
 - Setup: 'setup.md'
