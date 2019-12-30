@@ -12,7 +12,7 @@ $ conda activate safas_env
 (safas_env) $ safas
 ```
 
-<img align="center" src="img/guipanel.png" alt="main gui" width="400">
+<img align="center" src="img/guipanel.PNG" alt="main gui" width="400">
 
 *Fig. 1: Main panel*
 
@@ -21,14 +21,14 @@ $ conda activate safas_env
 * The ``load`` button will change to ``release`` and can be pushed to close the viewer or load a new video.  
 * The slider at the bottom of the video viewer, refer to the right hand window of Fig. 2, may be used to scroll or ''scrub'' through the video.
 
-<img align="center" src="img/viewer.png" alt="viewer" width="600">
+<img align="center" src="img/viewer.PNG" alt="viewer" width="600">
 
 *Fig. 2: Video viewer*
 
 * Click ``Analyze`` to load the ``tracking panel`` GUI for access to image processing and object tracking tools.
 * On the ``tracking panel`` there are several tools including: setting image filter parameters, tracking objects, saving plotting, merging data sets, refer to Fig. 4.
 
-<img align="center" src="img/track_panel.png" alt="track panel" width="600">
+<img align="center" src="img/track_panel.PNG" alt="track panel" width="600">
 
 *Fig. 3: Tracking panel*
 
@@ -38,7 +38,7 @@ $ conda activate safas_env
 
 * When satisfied, press ``Save`` to save the parameters, then press ``Exit.``
 
-<img align="center" src="../img/filter_params.png" alt="filter" width="400">
+<img align="center" src="../img/filter_params.PNG" alt="filter" width="400">
 
 *Fig. 4: Filter panel*
 
