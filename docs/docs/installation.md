@@ -39,7 +39,7 @@ One option is to make a copy of the config.yml file and place it in a directory 
 (safas_env) $ cd safas
 (safas_env) $ (echo call activate safas_env && echo safas  && echo pause) > safasrun.bat
 ```
-Then copy the 'config.yml' file from the downloaded package (or module inside the virtual env) into the new safas folder. Then, you will be able to modify the config file as necessary and start Safas by dobule-clicking the batch (.bat) file. 
+Then copy the 'config.yml' file from the downloaded package (or module inside the virtual env) into the new safas folder. Then, you will be able to modify the config file as necessary and start Safas by dobule-clicking the batch (.bat) file.
 
 ## GPU-enabled OpenCV
 Safas will run slightly faster if the OpenCV package used is GPU-enabled. The default OpenCV4 in the Conda repository is not GPU-enabled, therefore you must either build OpenCV from source or download a prebuilt binary and install it manually.

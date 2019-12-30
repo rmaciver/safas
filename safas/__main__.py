@@ -18,8 +18,9 @@ def main(config_file=None):
     # argument parsing with argparse here for access to functions later
     # update to more formal implementation
     if config_file is None:
-        file = sys.argv[1:][0]
-        if len(file) > 0:
+        args = sys.argv[1:]
+        if len(args) > 0:
+            file = args[0]
             print('file passed to cmd line')
             if os.path.isfile(file):
                 config_file = file

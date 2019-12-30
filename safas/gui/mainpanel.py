@@ -145,7 +145,7 @@ class MainPanel(QMainWindow):
     def update_io_status(self):
         """ update input, output, params, script displays """
         params = self.stream.params
-
+        print(params)
         if params['input'] == 0:
             self.file_status['input'].setText(params['basein'])
         else:
