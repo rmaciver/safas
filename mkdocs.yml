@@ -1,7 +1,7 @@
 site_name: Safas
 
 theme: readthedocs
-
+edit_uri: docs/
 nav:
 - Overview: 'index.md'
 - Installation: 'installation.md'
