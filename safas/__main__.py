@@ -18,25 +18,17 @@ def main(config_file=None):
     # argument parsing with argparse here for access to functions later
     # update to more formal implementation
     if config_file is None:
+        # check for config file from command line
         args = sys.argv[1:]
         if len(args) > 0:
             file = args[0]
-            print('file passed to cmd line')
             if os.path.isfile(file):
                 config_file = file
 
     if config_file is None:
-        print('local file from launch directory')
-        file = os.path.join(os.getcwd(), glob('*.yml')[0])
-        print(file)
-        if os.path.isfile(file):
-            config_file = file
-
-    if config_file is None:
-        print('default from module')
-        print(safas.__path__)
+        # load the default config file from safas module
         config_file = os.path.join(safas.__path__[0], 'config.yml')
-        print(config_file)
+
 
     app = QApplication([])
     window = MainPanel(config_file)

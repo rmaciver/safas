@@ -1,19 +1,11 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
+mainpanel.py
 
-gui.py
-
-* the safas GUI
-
-* load data and trac particles
-
+* the main panel of the Safas GUI
 * a parameters dictionary ('params') is used to exchange information
-    between the GUI and module. it may be constructed and passed manually,
-    or a YAML file may be read
-
-* note that few error checks or tests exist in the module at this time
-
+    between the GUI and the Stream, Handler, and Tracker modules.
 """
 import os
 import sys
@@ -29,6 +21,7 @@ from PyQt5.QtCore import *
 import safas
 from safas.comp.stream import Stream
 from safas.gui.trackpanel import TrackPanel
+from safas.comp.setconfig import set_dirout
 
 class MainPanel(QMainWindow):
     def __init__(self, config_file=None, *args, **kwargs):
@@ -40,10 +33,9 @@ class MainPanel(QMainWindow):
         self.stream = Stream(parent=self,
                              params=None,
                              params_file=config_file)
-
         self.file_status = {}
         self.buttons = {}
-
+        # setup sections of the main panel
         self.setup_window()
         self.setup_io_panel()
         self.setup_control_panel()
@@ -56,7 +48,8 @@ class MainPanel(QMainWindow):
         self.show()
 
     def setup_window(self):
-        self.setWindowTitle('safas 0.0')
+        """ setup the main window """
+        self.setWindowTitle('safas 0.1.0')
         self.layout = QGridLayout()
         w = QWidget()
         w.setLayout(self.layout)
@@ -64,7 +57,7 @@ class MainPanel(QMainWindow):
         self.setGeometry(100, 100, 500, 800)
 
     def setup_io_panel(self):
-        """ display file input, output, params, and script"""
+        """ add panel to display file input, output, and params """
         top_layout_2 = QGridLayout()
         status_box = QGroupBox('i/o')
 
@@ -74,7 +67,6 @@ class MainPanel(QMainWindow):
         self.buttons['input'] = QPushButton('input')
         user_menu = QMenu()
         user_menu.triggered.connect(self.file_select_clicked)
-        #dir_setting = user_menu.addAction('directory')
         file_setting = user_menu.addAction('file')
 
         self.buttons['input'].setMenu(user_menu)
@@ -90,21 +82,19 @@ class MainPanel(QMainWindow):
         file_setting = user_menu.addAction('named')
         self.buttons['output'].setMenu(user_menu)
         top_layout_2.addWidget(self.buttons['output'], 4, 2)
-        self.buttons['output'].setEnabled(False)
 
         # params input
         self.file_status['params'] = QLineEdit('')
         top_layout_2.addWidget(self.file_status['params'], 5, 1)
         self.buttons['params'] = QPushButton('params', clicked=self.click_params)
         top_layout_2.addWidget(self.buttons['params'], 5, 2)
-
-        # set the params as a config file, allow user to mod some params
-        self.buttons['params'].setEnabled(False)
+        self.buttons['params'].setEnabled(True)
 
         status_box.setLayout(top_layout_2)
         self.layout.addWidget(status_box, 0, 0)
 
     def setup_control_panel(self):
+        """ buttons to load view analyze """
         top_layout_2 = QHBoxLayout()
 
         ctrl_groupbox = QGroupBox('video control')
@@ -120,9 +110,9 @@ class MainPanel(QMainWindow):
         ctrl_groupbox.setLayout(top_layout_2)
         self.layout.addWidget(ctrl_groupbox, 1, 0)
 
-        self.buttons = {'setup': setup,
-                        'view': view,
-                        'track': track,}
+        self.buttons['setup'] = setup
+        self.buttons['view'] = view
+        self.buttons['track'] = track
 
         self.buttons['track'].setEnabled(False)
         self.buttons['view'].setEnabled(False)
@@ -139,35 +129,32 @@ class MainPanel(QMainWindow):
         textbox.setStyleSheet('background-color: white')
         status_box.setLayout(top_layout_2)
         self.layout.addWidget(status_box, pos, 0)
-
         return textbox
 
     def update_io_status(self):
         """ update input, output, params, script displays """
         params = self.stream.params
-        print(params)
-        if params['input'] == 0:
-            self.file_status['input'].setText(params['basein'])
+        if params['input'] ==0:
+            self.file_status['input'].setText(str(params['basein']))
         else:
-            self.file_status['input'].setText(params['input'])
+            self.file_status['input'].setText(str(params['input']))
 
         if params['output'] == 0:
-            self.file_status['output'].setText(params['baseout'])
+            self.file_status['output'].setText(str(params['baseout']))
         else:
-            self.file_status['output'].setText(params['output'])
+            self.file_status['output'].setText(str(params['output']))
 
-        if params['params_file'] != None:
-            self.file_status['params'].setText(params['params_file'])
+        if params['params_file'] != 0:
+            self.file_status['params'].setText(str(params['params_file']))
         else:
             self.file_status['output'].setText('no parameters file loaded')
 
     def update_params(self):
-        """ """
         self.stream.update_params()
 
     @pyqtSlot(QAction)
     def file_select_clicked(self, action):
-
+        """ determine file type and open dialog for user to select a file """
         val = action.text()
         tx = self.file_status['input'].text()
 
@@ -186,33 +173,46 @@ class MainPanel(QMainWindow):
 
     @pyqtSlot(QAction)
     def setup_output(self, action):
+        """ A directory in the default/ base output path is created
+            note: if not made explicitly by user, a time stamped folder
+                is made when the data is saved
+        """
         val = action.text()
+        dir_name = None
 
-        if val == 'time_stamp':
-            self.config.set_output(dir_name=dir_name)
+        if self.stream.params['baseout'] == 0:
+            # set a basein directory for saving files
+            baseout = str(QFileDialog.getExistingDirectory(self, "select Directory",))
+            self.stream.params['baseout'] = baseout
 
         if val == 'named':
+            # get name extension for the output directory, otherwise a timestamp is used
             text, okPressed = QInputDialog.getText(self, "Enter directory name","Directory name:", QLineEdit.Normal, "")
 
             if okPressed and text != '':
                 text = str(text)
-                text = text.replace(' ', '_')
-                self.config.set_output(dir_name=text)
+                dir_name = text.replace(' ', '_')
 
+        # create output directory
+        self.stream.set_output(dir_name=dir_name)
+        self.update_io_status()
+        self.update_params_status()
 
     def update_status(self, line):
         self.stream_status.setText(line)
 
     def click_params(self):
-        """ params required to load and process the stream"""
+        """ load a different params file """
+        tx = None
+        if self.stream.params['basein'] != 0:
+            tx = self.stream.params['basein']
         file = QFileDialog.getOpenFileName(self,
-                                           "open file",
-                                           self.params_path,
-                                           "image Files (*.yml *.yaml)")
-        self.params_file = file[0]
-
-        if params['params_file']:
-            self.stream.config_params()
+                                           "Select config file",
+                                           tx,
+                                           "YAML files (*.yml *.yaml)")
+        self.stream.config(params_file=file[0])
+        self.update_io_status()
+        self.update_params_status()
 
     def update_params_status(self):
         """ if config file available, that will be loaded
@@ -221,7 +221,7 @@ class MainPanel(QMainWindow):
         params = self.stream.params
 
         if params is not None:
-            # cannot serialize '_io.TextIOWrapper' object
+            # cremove bec. annot serialize '_io.TextIOWrapper' object
             if 'readme' in params:
                 params.pop('readme')
 
@@ -243,6 +243,8 @@ class MainPanel(QMainWindow):
             if ret:
                 self.buttons['setup'].setText('release')
                 self.buttons['view'].setEnabled(True)
+                for str in ['input','output','params', 'track']:
+                    self.buttons[str].setEnabled(False)
 
         if tx == 'release':
             # prompt to stop...
@@ -252,44 +254,43 @@ class MainPanel(QMainWindow):
                                            msg,
                                            QMessageBox.Yes | QMessageBox.No,
                                            QMessageBox.No)
+
             if buttonReply == QMessageBox.Yes:
                 self.stream.stop()
-                # close the windows ...
-
                 self.stream.close_windows()
                 self.buttons['setup'].setText('load')
                 self.buttons['view'].setEnabled(False)
                 self.buttons['track'].setEnabled(False)
                 self.stream_status.setText('video released.')
 
+                for str in ['input','output','params', 'view','track']:
+                    self.buttons[str].setEnabled(True)
+
     def click_view(self):
-        # connect the raw and processed images
+        """ open viewer for image stream """
         tx = self.buttons['view'].text()
         if tx == 'view':
             self.buttons['track'].setEnabled(True)
-            # only option is to release and reload
             self.buttons['view'].setEnabled(False)
             self.stream.view()
-            # *** add lines above to gui
             self.update_status('viewer opened')
 
     def click_track(self):
+        """ load the track panel GUI for user control """
         line = 'process the stream'
         self.update_status(line)
-        # *** add lines below to gui
         self.stream.track()
         self.buttons['track'].setEnabled(False)
-        # *** add lines above to gui
 
     def closeEvent(self, event=None):
+        """ close window and exit the app context"""
         self.update_status('close button pressed')
         self.stream.stop()
         self.destroy()
-
-        #if self.parent is None:
         sys.exit(0)
 
 def main(params=None, params_file=None):
+    """ for testing run stand-alone"""
     global app
     app = QApplication([])
     window = MainPanel(params=params, params_file=params_file)

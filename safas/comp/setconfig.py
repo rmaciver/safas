@@ -2,9 +2,9 @@
 # -*- coding: utf-8 -*-
 """
 
-parse_config.py
+setconfig.py
 
-1 import YAML configuration file 
+1 import YAML configuration file
 2 setup output
 
 * functionality would be easier to access from GUI and contol.py if this were
@@ -16,54 +16,54 @@ import datetime
 import shutil
 import yaml
 
-def config_params(params=None, params_file=None, **kwargs): 
+def config_params(params=None, params_file=None, **kwargs):
     """
     take parameters from YAML configuration file or from dictionary passed
     """
-    if params_file: 
+    if params_file:
         params = read_params(params_file)
         params['params_file'] = params_file
-        
-    elif params: 
+
+    elif params:
         params = params
-    else: 
+    else:
         print('params file or dictionary not passed')
-        
+
     return params
-    
+
 def set_dirout(params=None, dir_name=None, folders=None, **kwargs):
     # check the inputs: min headings need to be included
     dir_out = params['baseout']
-    
+
     if not os.path.exists(dir_out):
         os.makedirs(dir_out)
-    
+
     time_stamp = datetime.datetime.now().strftime('%Y-%m-%d_%H.%M.%S')
     dir_stamp = time_stamp
-    
-    if dir_name: 
-        dir_stamp += '_' 
+
+    if dir_name:
+        dir_stamp += '_'
         dir_stamp += str(dir_name)
 
     dir_out = os.path.join(dir_out, dir_stamp)
     os.makedirs(dir_out)
-    
+
     if folders is None:
         folders = ['params', 'plots', 'imgs', 'data']
-    
+
     [os.makedirs(os.path.join(dir_out,pth)) for pth in folders]
-        
+
     params['output'] = dir_out
-                                              
-    if 'params_file' in params: 
+
+    if 'params_file' in params:
         copy_params(params['params_file'], params['output'])
-    
+
     params['readme'] = readme(params['output'])
     values = [('Image trial info'),('File timestamp: ' + time_stamp)]
     updatereadme(params['readme'].name, values)
-        
+
     return params
-    
+
 def read_params(file):
     """ get parameters from config file """
     with open(file) as f:
@@ -72,15 +72,13 @@ def read_params(file):
 
 def write_params(file, params):
     """ write params to yaml file"""
-    
      # cannot serialize '_io.TextIOWrapper' object
     if 'readme' in params:
         params.pop('readme')
 
     with open(file, 'w') as file:
         docs = yaml.dump(params, file)
-    
-    
+
 def updatereadme(readme, lines):
     """
     add new lines to the readme file
@@ -110,5 +108,3 @@ def copy_params(config_file, new_dir):
     name = os.path.basename(config_file)
     new_dir = os.path.join(new_dir, 'params', name)
     shutil.copyfile(config_file, new_dir)
-
-

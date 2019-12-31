@@ -1,7 +1,7 @@
-basein: C:\Users\Ryan\Desktop\Data\raw
-baseout: C:\Users\Ryan\Desktop\Data\pro\por_graviprobe
-
-input: C:\Users\Ryan\Desktop\Data\raw\2019-12-20_POR_graviprobe_trial2\000_por_graviprobe_trial2.avi
+# defaults are 0, YAML reads as int, otherwise 'None' will be read as string
+basein: 0
+baseout: 0
+input: 0
 output: 0
 
 improcess:
@@ -10,11 +10,11 @@ improcess:
   fps: None
   pixel_size: 8.6 # microns
   size: None   # dimensions of image. [height, width, length]
-  filter: sobel_focus
   max_track_len: 50
   min_track_len: 3
   max_object_angle: 45
   n_frames: 40
+  filter: sobel_focus
   kwargs:
     pre_filter: True
     focus_filter: True

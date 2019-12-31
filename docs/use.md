@@ -16,7 +16,10 @@ $ conda activate safas_env
 
 *Fig. 1: Main panel*
 
+* There are three ways to select a parameters file: (1) pass the file name to Safas on the command line; (2) let the software load a default file from the module; or (3) set the config file interactively in the Main panel by clicking the ``params`` button.
+* Note: after you have completed one analysis, an updated config file will be saved to the output directory and you can use that file as a starting point for your next analysis.
 * Click ``input > file``, then select your video file.
+* Click ``output``, to select location of the output directory. If 'baseout' has been set in the 'config.yml', the data will be saved relative to that path.
 * Click ``load`` -- to set the parameters and check inputs -- then ``view`` to load the video viewer.
 * The ``load`` button will change to ``release`` and can be pushed to close the viewer or load a new video.  
 * The slider at the bottom of the video viewer, refer to the right hand window of Fig. 2, may be used to scroll or ''scrub'' through the video.

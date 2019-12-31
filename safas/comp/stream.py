@@ -70,12 +70,15 @@ class Stream(QObject):
 
         return filts
 
-    def config(self):
+    def config(self, params_file=None):
         """ update params from config file if necessary"""
+        if params_file is not None:
+            self.params_file = params_file
+
         self.params = config_params(params=self.params, params_file=self.params_file)
 
-    def set_output(self):
-        self.params = set_dirout(self.params)
+    def set_output(self, dir_name=None):
+        self.params = set_dirout(self.params, dir_name=dir_name)
 
     def setup(self):
         """
@@ -111,8 +114,6 @@ class Stream(QObject):
         self.handler.status_update_signal.connect(self.parent.update_status)
 
         # allows a series of images to be processed through config.yml or
-        # by updating the value in the text edit box beside 'next frame'
-
         self.handler.frame_finished_signal.connect(self.track_panel.tracks.wait_queue_finished)
 
         # this is the main control point in the tracking display and user input
@@ -131,14 +132,19 @@ class Stream(QObject):
         self.viewer.next_frame()
 
     def close_viewer(self):
+        """ close viewer """
         self.viewer.stop()
 
     def close_windows(self):
-        if self.track_panel:
+        if getattr(self, 'track_panel'):
             self.track_panel.click_exit_track()
 
     def stop(self):
+        """ on exit and stop """
         self.params['improcess']['running'] = False
-        self.handler.stop()
-        if self.viewer:
+
+        if getattr(self, 'handler'):
+            self.handler.stop()
+
+        if getattr(self, 'viewer'):
             self.viewer.stop()

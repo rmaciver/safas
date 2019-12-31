@@ -1,4 +1,4 @@
-# Introduction
+# Installation
 The preferred method to install Safas is to prepare a virtual environment. A Conda 'environment.yml' file is provided with Safas to setup an identical environment for Safas installation and operation. Conda can be obtained by installing the [Anaconda](https://www.anaconda.com/distribution/#download-section) or [Miniconda](https://docs.conda.io/en/latest/miniconda.html) packages. After installation, the location of the Conda binaries must be appended to the Windows PATH before it can be used from the command line.
 
 ## Virtual environment

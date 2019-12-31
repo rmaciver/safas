@@ -1,8 +1,27 @@
 # -*- coding: utf-8 -*-
 """
 
-Tracker
+tracker.py
 
+Tracker class for correlating objects in time series of frames
+
+-functions to:
+    * add frames,
+    * add objects to track,
+    * correlate objects between frames,
+    * visualize objects and tracks,
+    * calculate object velocity
+    * save output,
+
+- Tracker emits signals that are connected to the Viewer in the Stream class
+
+- Tracker is connected to signals emitted from the TrackPanel and TrackLists
+    objects to select objects to highlight and track
+
+-todo:
+    1 separate functionality of this class for easier access in 'headless'
+    mode.
+    2 true divide error observed a couple of times in 'angle_between'
 """
 import os
 from glob import glob
@@ -17,11 +36,7 @@ import pandas as pd
 
 import skimage
 import skimage.io as sio
-from skimage.filters import sobel, gaussian
-from skimage.segmentation import clear_border, random_walker
-from skimage.color import rgb2grey, grey2rgb
 from skimage.measure import label, regionprops, find_contours
-from skimage.exposure import rescale_intensity
 
 from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
@@ -31,9 +46,9 @@ import cv2
 
 from safas.comp.matcher import matcher
 from safas.comp.setconfig import write_params, set_dirout
-"""
 
-"""
+# these properties from skimage.measure.regioprops are added to the object
+#   analysis. other keys may be added.
 KEYS = ['area',
         'equivalent_diameter',
         'perimeter',
@@ -71,6 +86,7 @@ class Tracker(QObject):
         """
         # simple check in case viewer was scrolled back
         if frame_index not in self.frames:
+            L = None
             if self.frame_count == 0:
                 self.overlay_img = np.zeros_like(label_frame)
             if len(np.unique(label_frame)) == 2:
@@ -79,21 +95,22 @@ class Tracker(QObject):
             if len(np.unique(label_frame)) > 2:
                 L = label_frame
 
-            P = regionprops(L)
-            T= len(P) # do not include the background
-            C = find_contours(label_frame, 100)
+            if L is not None :
+                P = regionprops(L)
+                T= len(P) # do not include the background
+                C = find_contours(label_frame, 100)
 
-            self.frames[frame_index] = {'frame': label_frame,
-                                        'cframe': frame,
-                                      'labels': L,
-                                      'props': P,
-                                      'contour': C,
-                                      'total': T}
-            self.frame_index = frame_index
-            self.frame_count += 1
+                self.frames[frame_index] = {'frame': label_frame,
+                                            'cframe': frame,
+                                          'labels': L,
+                                          'props': P,
+                                          'contour': C,
+                                          'total': T}
+                self.frame_index = frame_index
+                self.frame_count += 1
 
     def list_new(self):
-        # for external connections.
+        """ for external connections."""
         if self.frame_index is not None:
             return self.frames[self.frame_index]['total']
 
@@ -106,11 +123,9 @@ class Tracker(QObject):
 
         if len(self.tracks['id']) > 0:
             vals = []
-
             for id_obj in self.tracks['id']:
                 v = self.tracks['id'][id_obj][-1]['id_curr']
                 vals.append(v)
-
             return vals
         else:
             return None
@@ -139,6 +154,7 @@ class Tracker(QObject):
         self.tracks['id'].pop(id_obj)
 
     def n_tracks(self):
+        """ calculate number of objects being tracked """
         val = len(list(self.tracks['id'].keys()))
         return val
 
@@ -153,8 +169,8 @@ class Tracker(QObject):
         self.tracks['id'][id_obj].append(vals)
 
     def predict_next_all(self, index, **kwargs):
-        """ threaded or array func based predictions, rather than
-                loop based in the track_panel gui object"""
+        """ correlate each selected object in frame N-1 with an object in the
+                current frame """
         criteria = self.params['matcher']
         A_props = []
         A_ids = []
@@ -173,21 +189,6 @@ class Tracker(QObject):
 
         for id_obj, val_new in zip(self.tracks['id'], B_matches):
             self.update_object_track(index, id_obj=id_obj, id_curr=val_new)
-
-    def predict_next(self, index, id_obj, **kwargs):
-        """ """
-        maxobjs = self.params['improcess']['max_track_len']
-        val_open = self.tracks['id'][id_obj][-1]['id_curr']
-
-        if len(self.tracks['id'][id_obj]) < maxobjs:
-            p0 = self.tracks['id'][id_obj][-1]['prop'] # most recent one added
-            props = self.frames[index]['props']
-            criteria = self.params['matcher']
-            M = Matcher(p0=p0, props=props, criteria=criteria)
-            p1 = M.rank_and_match()
-            return (p1, val_open)
-        else:
-            return (None, val_open)
 
     def outline_pair(self, frame, index, val_open=None, val_new=None, **kwargs):
         """ outline the selected new and open objects """
@@ -237,6 +238,8 @@ class Tracker(QObject):
         tracks = self.tracks['id']
 
         if self.params['output'] == 0:
+            # set the output if not already set
+            # bec. it may have been set by user in the main panel
             if self.parent is None:
                 self.params = set_dirout(params=self.params)
             else:
@@ -319,6 +322,7 @@ class Tracker(QObject):
             N = self.params['improcess']['min_track_len']
 
         dt = 1/self.params['improcess']['fps']
+        # dictionary to hold the
         T = {}
 
         for i in self.tracks['id']:
@@ -326,33 +330,34 @@ class Tracker(QObject):
             if len(track) >= N:
                 cents = np.array([t['centroid'] for t in track])
                 dist = np.linalg.norm((cents[1:]-cents[:-1]), axis=1)
+
+                # calculate angle of each track wrt [1,0]
                 vect = cents[1:] - cents[:-1]
                 angles = [angle_between(np.array([1,0]), vt) for vt in vect]
-                mean_angle = np.nanmean(angles)
+                mean_angle = np.abs(np.nanmean(angles))
 
+                # track excluded if angle is too large
                 if mean_angle < theta_max:
                     disp_metric = np.array(dist)*self.params['improcess']['pixel_size']/10**3 # in MM
                     v = disp_metric/dt
-                    Nv = len(v)
-                    v_mean = np.mean(v)
-                    v_std = np.std(v)
-                    track[0]['vel_mean'] = v_mean
-                    track[0]['vel_std'] = v_std
-                    track[0]['vel_N'] = Nv
+                    track[0]['vel_mean'] = np.mean(v)
+                    track[0]['vel_std'] = np.std(v)
+                    track[0]['vel_N'] = len(v)
                     T[i] = track
 
+        # filtered tracks with velocity added are put back in the tracks dict
         self.tracks['id'] = T
-
-
-def unit_vector(vector):
-    """  unit vector of the vector """
-    return vector / np.linalg.norm(vector)
 
 def angle_between(v1, v2):
     """ angle between vectors v1 and v2 """
     v1_u = unit_vector(v1)
     v2_u = unit_vector(v2)
     return np.degrees(np.arccos(np.clip(np.dot(v1_u, v2_u), -1.0, 1.0)))
+
+def unit_vector(vector):
+    """  unit vector of the vector """
+    # true divide error not solved in some cases
+    return vector / np.linalg.norm(vector)
 
 def test_img():
     img = np.zeros((1000,1000))
@@ -361,12 +366,11 @@ def test_img():
     img[500:600,500:600] = 255
     return img
 
-
 if __name__ == '__main__':
     t = test_img()
 
     params = {'improcess': {'fps': 25},
-              'baseout': 'C:/Users/Ryan/Desktop/Data/pro',
+              'baseout': 'C:/',
               'output': 0,
               }
 
