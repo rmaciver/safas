@@ -1,5 +1,10 @@
 # Installation
-The preferred method to install Safas is to prepare a virtual environment. A Conda 'environment.yml' file is provided with Safas to setup an identical environment for Safas installation and operation. Conda can be obtained by installing the [Anaconda](https://www.anaconda.com/distribution/#download-section) or [Miniconda](https://docs.conda.io/en/latest/miniconda.html) packages. After installation, the location of the Conda binaries must be appended to the Windows PATH before it can be used from the command line.
+The preferred method to install Safas is to prepare a virtual environment. A Conda 'environment.yml' file is provided with Safas to setup an identical environment for Safas installation and operation.
+
+Setup before install:
+* Download and install [Miniconda3](https://docs.conda.io/en/latest/miniconda.html) or [Anaconda](https://www.anaconda.com/distribution/#download-section)
+* Add Miniconda3/condabin to system PATH so 'conda' can be called from cmd prompt
+* Download and install atom https://atom.io/ a text editor to preserve yml and py formatting. 
 
 ## Virtual environment
 Download or pull (with git) the Safas package master branch from the command line or by pressing the green "Clone or Download" button at the top right-hand side of the page:
@@ -40,6 +45,23 @@ One option is to make a copy of the config.yml file and place it in a directory 
 (safas_env) $ (echo call activate safas_env && echo safas config.yml  && echo pause) > safasrun.bat
 ```
 Then copy the 'config.yml' file from the downloaded package (or module inside the virtual env) into the new safas folder. Then, you will be able to modify the config file as necessary and start Safas by dobule-clicking the batch (.bat) file.
+
+##  New installation notes
+* download and install Miniconda3 https://docs.conda.io/en/latest/miniconda.html
+* add Miniconda3/condabin to system PATH so 'conda' can be called from cmd prompt
+* download and install atom https://atom.io/ a text editor to preserve yml and py formatting
+* download and unzip safas https://github.com/rmaciver/safas
+* open command line in the unzipped safas directory
+* create a conda environment from the environment.yml file:
+``` shell
+$ conda env create -f environment.yml
+```
+* activate safas_env and install safas:
+``` shell
+$ conda activate safas_env
+```
+(safas_env) $ python setup.py install
+* create a shortcut folder and .bat file with link to safas on readthedocs
 
 ## GPU-enabled OpenCV
 Safas will run slightly faster if the OpenCV package used is GPU-enabled. The default OpenCV4 in the Conda repository is not GPU-enabled, therefore you must either build OpenCV from source or download a prebuilt binary and install it manually.

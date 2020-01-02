@@ -119,8 +119,6 @@ class Tracker(QObject):
 
     def list_open(self, **kwargs):
         """ return a list of object numbers in previous frame on the track """
-        index = self.frame_index - 1
-
         if len(self.tracks['id']) > 0:
             vals = []
             for id_obj in self.tracks['id']:

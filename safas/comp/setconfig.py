@@ -49,7 +49,7 @@ def set_dirout(params=None, dir_name=None, folders=None, **kwargs):
     os.makedirs(dir_out)
 
     if folders is None:
-        folders = ['params', 'plots', 'imgs', 'data']
+        folders = ['params', 'imgs', 'data']
 
     [os.makedirs(os.path.join(dir_out,pth)) for pth in folders]
 

@@ -245,7 +245,7 @@ class TrackPanel(QMainWindow):
     def make_plot(self):
         """ read the output and plot results in saved dataframe   """
         basedir=self.parent.params['output']
-        self.plotwin = MakePlot(parent=self, basedir=basedir)
+        self.plotwin = MakePlot(parent=self.parent, basedir=basedir)
 
     def click_params_dialog(self):
         """ """
