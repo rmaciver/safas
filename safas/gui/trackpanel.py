@@ -173,7 +173,9 @@ class TrackPanel(QMainWindow):
     def text_clicked(self, value, key='improcess'):
         rb = self.sender()
         if rb.name in ['n_frames']:
-             self.parent.params[key][rb.name] = int(rb.text())
+            if rb.text =='':
+                rb = 2 # enforce min number of frames
+            self.parent.params[key][rb.name] = int(rb.text())
 
     def radio_clicked(self, value, key='improcess', **kwargs):
         rb = self.sender()
@@ -187,14 +189,16 @@ class TrackPanel(QMainWindow):
 
     def click_save(self):
         """ """
-        if self.parent.params['save']['confirm']:
-            self.savedialog = SaveDialog(parent=self, params=self.parent.params)
-            self.savedialog.params_update_signal.connect(self.save_params_update)
-            self.savedialog.close_signal.connect(self.save_tracker)
-            self.savedialog.setup()
+        if self.parent.handler.tracker.frame_index != None:
+            # filters if save pressed before analysis starts
+            if self.parent.params['save']['confirm']:
+                self.savedialog = SaveDialog(parent=self, params=self.parent.params)
+                self.savedialog.params_update_signal.connect(self.save_params_update)
+                self.savedialog.close_signal.connect(self.save_tracker)
+                self.savedialog.setup()
 
-        if not self.parent.params['save']['confirm']:
-            self.save_tracker()
+            if not self.parent.params['save']['confirm']:
+                self.save_tracker()
 
     def save_params_update(self, params):
         self.parent.params = params
