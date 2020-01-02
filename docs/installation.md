@@ -37,7 +37,7 @@ One option is to make a copy of the config.yml file and place it in a directory 
 ``` shell
 (safas_env) $ mkdir safas
 (safas_env) $ cd safas
-(safas_env) $ (echo call activate safas_env && echo safas  && echo pause) > safasrun.bat
+(safas_env) $ (echo call activate safas_env && echo safas config.yml  && echo pause) > safasrun.bat
 ```
 Then copy the 'config.yml' file from the downloaded package (or module inside the virtual env) into the new safas folder. Then, you will be able to modify the config file as necessary and start Safas by dobule-clicking the batch (.bat) file.
 

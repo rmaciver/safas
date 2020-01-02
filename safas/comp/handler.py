@@ -83,7 +83,7 @@ class Handler(QObject):
             # update params
             self.params['improcess']['fps'] = fps
             self.params['improcess']['img_dim'] = [height, width, length]
-
+            print('improcess updated:', fps, height, width, length)
             return 1
 
     def set_cap(self, index):

@@ -29,8 +29,12 @@ def main(config_file=None):
         # load the default config file from safas module
         config_file = os.path.join(safas.__path__[0], 'config.yml')
 
-
     app = QApplication([])
+    f = app.font();
+    f.setFamily("Monaco");
+    f.setPointSize(9);
+    app.setFont(f)
+
     window = MainPanel(config_file)
     app.exec_()
 

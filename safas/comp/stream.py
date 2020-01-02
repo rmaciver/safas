@@ -44,6 +44,11 @@ class Stream(QObject):
         super(Stream, self).__init__(*args, **kwargs)
         # setup params
         self.parent = parent
+
+        # transfer to make reference consistent
+        self.dt_height = parent.dt_height
+        self.dt_width = parent.dt_width
+
         self.params = params
         self.params_file = params_file
 

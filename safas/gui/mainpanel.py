@@ -23,9 +23,14 @@ from safas.comp.stream import Stream
 from safas.gui.trackpanel import TrackPanel
 from safas.comp.setconfig import set_dirout
 
+
 class MainPanel(QMainWindow):
     def __init__(self, config_file=None, *args, **kwargs):
         super(MainPanel, self).__init__(*args, **kwargs)
+
+        desktopsize = QDesktopWidget().screenGeometry()
+        self.dt_height = desktopsize.height()
+        self.dt_width = desktopsize.width()
 
         self.layout = QGridLayout()
 
@@ -40,8 +45,19 @@ class MainPanel(QMainWindow):
         self.setup_io_panel()
         self.setup_control_panel()
 
-        self.stream_status = self.panel(height=100, pos=2, title='status')
-        self.params_status = self.panel(height=0, pos=3, title='params')
+        dims = [int(self.dt_height*0.04), int(self.dt_height*0.1)]
+        widget = QLabel('...')
+        self.stream_status = self.panel(dims,
+                                        pos=2,
+                                        title='status',
+                                        widget=widget)
+
+        dims = [int(self.dt_height*0.3), int(self.dt_height*0.5)]
+        widget = QTextEdit()
+        self.params_status = self.panel(dims,
+                                        pos=3,
+                                        title='params',
+                                        widget=widget)
 
         self.update_params_status()
         self.update_io_status()
@@ -54,7 +70,14 @@ class MainPanel(QMainWindow):
         w = QWidget()
         w.setLayout(self.layout)
         self.setCentralWidget(w)
-        self.setGeometry(100, 100, 500, 800)
+        x=int(self.dt_width*0.02)
+        y=int(self.dt_height*0.05)
+
+        w=int(self.dt_width*0.25)
+        h=int(self.dt_height*0.75)
+
+
+        self.setGeometry(x, y, w, h)
 
     def setup_io_panel(self):
         """ add panel to display file input, output, and params """
@@ -117,15 +140,16 @@ class MainPanel(QMainWindow):
         self.buttons['track'].setEnabled(False)
         self.buttons['view'].setEnabled(False)
 
-    def panel(self, height, pos, title):
+    def panel(self, dims, pos, title, widget):
         """ params and status boxes """
         top_layout_2 = QGridLayout()
         status_box = QGroupBox(title)
-
-        textbox = QLabel('...')
+        textbox = widget
         top_layout_2.addWidget(textbox, 0, 0)
-        textbox.setMinimumHeight(height)
-        textbox.setMinimumWidth(300)
+
+        textbox.setMaximumHeight(dims[1])
+        textbox.setMinimumHeight(dims[0])
+
         textbox.setStyleSheet('background-color: white')
         status_box.setLayout(top_layout_2)
         self.layout.addWidget(status_box, pos, 0)
@@ -168,7 +192,7 @@ class MainPanel(QMainWindow):
 
         if self.stream.params['input'] != 0:
             self.file_status['input'].setText(self.stream.params['input'])
-            self.buttons['view'].setEnabled(True)
+            #self.buttons['view'].setEnabled(True)
             self.update_params_status()
 
     @pyqtSlot(QAction)

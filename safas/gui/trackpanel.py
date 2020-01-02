@@ -17,6 +17,8 @@ from safas.gui.matcherdialog import MatcherDialog
 from safas.gui.savedialog import SaveDialog
 from safas.gui.makeplot import MakePlot
 
+Xp = 0.12
+
 class TrackPanel(QMainWindow):
 
     status_update_signal = pyqtSignal(str, name="status_update_signal")
@@ -36,14 +38,21 @@ class TrackPanel(QMainWindow):
         self.layout = QGridLayout()
         self.setup_control_panel()
         self.setup_track_control()
-        self.setup_mode_panel()
+        #self.setup_mode_panel()
         self.filter_control_panel()
 
         w = QWidget()
         w.setLayout(self.layout)
         self.setCentralWidget(w)
 
-        self.setGeometry(100, 1500, 50, 10)
+        x = int(self.parent.dt_width*Xp)
+        y = int(self.parent.dt_height*0.8325)
+        w = int(self.parent.dt_width*0.8)
+        h = int(self.parent.dt_height*0.05)
+        self.setGeometry(x, y, w, h)
+
+
+        self.setMaximumWidth(self.parent.dt_width)
         self.show()
         self.pop_filt()
 
@@ -143,7 +152,7 @@ class TrackPanel(QMainWindow):
         if 'running' in self.parent.params['improcess']:
             defval = self.parent.params['improcess']['running']
         rb = self.add_radio(name='running', label='process img.', defval=defval)
-        next_frame = QPushButton('next frame >', clicked=self.click_next)
+        next_frame = QPushButton('next >', clicked=self.click_next)
 
         top_layout_2.addWidget(QLabel('step int.'))
         textedit = QLineEdit('')
@@ -321,7 +330,11 @@ class TrackLists(QMainWindow):
         w.setLayout(self.layout)
         self.setCentralWidget(w)
 
-        self.setGeometry(50, 50, 600, 1000)
+        x = int(self.parent.dt_width*Xp)
+        y = int(self.parent.dt_height*0.05)
+        w = int(self.parent.dt_width*0.125)
+        h = int(self.parent.dt_height*0.75)
+        self.setGeometry(x, y, w, h)
         self.show()
 
         self.lists = ['new', 'tracks', 'open', ]

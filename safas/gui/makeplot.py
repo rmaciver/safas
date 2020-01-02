@@ -23,32 +23,36 @@ class MakePlot(QMainWindow):
         self.parent = parent
         self.file = file
         self.basedir = basedir
-        
+
         self.setWindowTitle('plot gui')
         #app.aboutToQuit.connect(self.exit_dialog)
         self.layout = QGridLayout()
         w = QWidget()
         w.setLayout(self.layout)
         self.setCentralWidget(w)
-        
 
         if file is None:
             self.get_file()
-            
+
         self.read_file()
-        
-        if self.dataframe is not None: 
+
+        if self.dataframe is not None:
             self.setup_window()
-            self.setGeometry(100, 100, 50, 100)
+            x=int(self.dt_height*0.02)
+            y=int(self.dt_width*0.02)
+            w=int(self.dt_width*0.02)
+            h=int(self.dt_height*0.05)
+
+            self.setGeometry(x, y, w, h)
             self.show()
-        
+
     def get_file(self):
         tx = self.basedir
-        if tx == 0: 
+        if tx == 0:
             tx = None
         file, spec = QFileDialog.getOpenFileName(self, "open file", tx, "files (*.xlsx)")
         self.file = file
-        
+
     def setup_window(self):
         top_layout_2 = QGridLayout()
         status_box = QGroupBox('')
@@ -110,7 +114,7 @@ class MakePlot(QMainWindow):
 
     def save_plot(self):
         """ write to the output"""
-        dirout = os.path.join(self.dirout, 'data', 'plots')
+        dirout = os.path.join(self.basedir, 'data', 'plots')
 
         if not os.path.isdir(dirout):
             os.mkdir(dirout)
@@ -134,7 +138,7 @@ def main(dirout=None):
    """ run stand-alone for testing """
    global app
    app = QApplication([])
-   w = MakePlot(dirout=dirout)
+   w = MakePlot(basedir=dirout)
    w.show()
    sys.exit(app.exec_())
 
