@@ -76,7 +76,6 @@ class MainPanel(QMainWindow):
         w=int(self.dt_width*0.25)
         h=int(self.dt_height*0.75)
 
-
         self.setGeometry(x, y, w, h)
 
     def setup_io_panel(self):
@@ -287,7 +286,7 @@ class MainPanel(QMainWindow):
                 self.buttons['track'].setEnabled(False)
                 self.stream_status.setText('video released.')
 
-                for str in ['input','output','params', 'view','track']:
+                for str in ['input','output','params']:
                     self.buttons[str].setEnabled(True)
 
     def click_view(self):

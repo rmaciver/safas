@@ -332,7 +332,7 @@ class TrackLists(QMainWindow):
 
         x = int(self.parent.dt_width*Xp)
         y = int(self.parent.dt_height*0.05)
-        w = int(self.parent.dt_width*0.125)
+        w = int(self.parent.dt_width*0.145)
         h = int(self.parent.dt_height*0.75)
         self.setGeometry(x, y, w, h)
         self.show()
@@ -536,18 +536,12 @@ class TrackLists(QMainWindow):
 
     def outline_track(self, **kwargs):
         """ highlight a single track when selected in tracks list box """
-#        val_track, val_open, val_new = self.get_obj_pair(src='tracks')
-
         frame = self.parent.handler.contour_img
         index = self.parent.handler.frame_index
         tracker = self.parent.handler.tracker
         val_track_out = list(tracker.tracks['id'])
         tracker.outline_track(frame.copy(), index, id_obj=val_track_out)
 
-#        self.current_track = val_track
-#        self.current_open = val_open
-#        self.current_new = val_new
-#
 def main(params=None, params_file=None):
     global app
     app = QApplication([])

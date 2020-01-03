@@ -38,10 +38,10 @@ class MakePlot(QMainWindow):
 
         if self.dataframe is not None:
             self.setup_window()
-            x=int(self.dt_height*0.02)
-            y=int(self.dt_width*0.02)
-            w=int(self.dt_width*0.02)
-            h=int(self.dt_height*0.05)
+            x=int(self.parent.dt_height*0.02)
+            y=int(self.parent.dt_width*0.02)
+            w=int(self.parent.dt_width*0.02)
+            h=int(self.parent.dt_height*0.05)
 
             self.setGeometry(x, y, w, h)
             self.show()
