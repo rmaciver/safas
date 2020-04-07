@@ -108,14 +108,14 @@ class Handler(QObject):
             label_frame, frame = self.imfilter(src=frame, **params)
         else:
             if self.params['improcess']['running']:
-                label_frame, frame = self.imfilter(src=frame,
+                label_frame, contour_frame = self.imfilter(src=frame,
                                                  **self.params['improcess']['kwargs'])
                 self.frame_count += 1
                 self.label_img = label_frame
-                self.contour_img = frame
-                self.tracker.add_frame(label_frame, frame, index)
+                self.contour_img = contour_frame
+                self.tracker.add_frame(label_frame, contour_frame, frame, index)
                 self.process_finished_signal.emit(1)
-
+                frame = contour_frame
         # emit either the raw or overlay image
         self.frame_signal.emit(frame, index)
 
@@ -132,10 +132,10 @@ class Handler(QObject):
 
     def process_frames(self, index, frame, **kwargs):
 
-        label_frame, frame = self.imfilter(src=frame,
+        label_frame, contour_frame = self.imfilter(src=frame,
                                                  **self.params['improcess']['kwargs'])
-        self.tracker.add_frame(label_frame, frame, index)
-        self.frame_finished_signal.emit(frame, index)
+        self.tracker.add_frame(label_frame, contour_frame, frame, index)
+        self.frame_finished_signal.emit(contour_frame, index)
 
     def stop(self, **kwargs):
         if self.cap:

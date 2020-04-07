@@ -4,8 +4,6 @@
 Matcher compares position and aera of tracked object to all other objects
     in the new frame
 
-    Note: need to improve the comments/ documentation here.
-
 """
 import numpy as np
 from skimage.measure import regionprops
@@ -36,13 +34,19 @@ def rank(A_props, B_props, criteria):
     return err
 
 def match(err, error_threshold, A_ids, B_ids):
-    errmin = np.argmin(err, axis=1)
-    B_matches = B_ids[errmin]
+    """ find the value and index of the objects with lowest error """ 
+    # index of min value
+    erridx = np.argmin(err, axis=1)
+    errmin = np.min(err, axis=1)
+    
+    B_matches = B_ids[erridx]
     mask = errmin < error_threshold
     B_matches[np.where(~mask)] = -99999 # easier to deal with than nan or None
-    return B_matches
+    
+    return (B_matches, errmin)
 
 def cal_cdist(A_props, B_props):
+    
     A_cent =  np.array([prop.centroid for prop in A_props])
     B_cent =  np.array([prop.centroid for prop in B_props])
     return cdist(A_cent, B_cent)
@@ -51,3 +55,7 @@ def cal_carea(A_props, B_props):
     A_area = np.array([prop.area for prop in A_props])
     B_area =  np.array([prop.area for prop in B_props])
     return np.abs(B_area - A_area.reshape((A_area.shape[0], 1)))
+
+
+if __name__=='__main__':
+    P = FakeProp()
