@@ -1,6 +1,7 @@
 # defaults are 0, YAML reads as int, otherwise 'None' will be read as string
 basein: 0
 baseout: 0
+
 input: 0
 output: 0
 
@@ -10,27 +11,28 @@ improcess:
   fps: None
   pixel_size: 8.6 # microns
   size: None   # dimensions of image. [height, width, length]
-  max_track_len: 50
+  max_track_len: 40
   min_track_len: 3
-  max_object_angle: 45
+  max_object_angle: 30
   n_frames: 40
   filter: sobel_focus
   kwargs:
     pre_filter: True
     focus_filter: True
     clearborder_filter: True
-    img_thresh: 100
-    edge_thresh: 150
+    img_thresh: 130
+    edge_thresh: 80
     edge_dist: 1
 
 save:
   confirm: True # confirm save settings each time
   filename: props_frame_%05d.xlsx # name of object properties files
   save_frames: False
+  save_object_images: True
   clear: True # default clear after save
 
 matcher:
-  error_threshold: 5000
+  error_threshold: 100
   distance: 1
   area: 1
   squared: False
