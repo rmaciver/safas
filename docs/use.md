@@ -40,7 +40,6 @@ $ conda activate safas_env
 * Carefully inspect the processed image. Are the flocs segmented properly? Zoom in and out with the magnifying glass or ctrl + mouse wheel. To improve the segmentation results, test different combinations of filters and parameters by loading the image filter parameters dialog.
 
 * When satisfied, press ``Save`` to save the parameters, then press ``Exit.``
-* Now click the ``process img.`` radio button, then the ``next >`` button to process the first frame. 
 
 <img align="center" src="../img/filter_params.PNG" alt="filter" width="400">
 
