@@ -195,29 +195,49 @@ class MainPanel(QMainWindow):
             self.update_params_status()
 
     @pyqtSlot(QAction)
-    def setup_output(self, action):
+    def setup_output(self, action=None):
         """ A directory in the default/ base output path is created
             note: if not made explicitly by user, a time stamped folder
                 is made when the data is saved
         """
-        val = action.text()
-        dir_name = None
-
         if self.stream.params['baseout'] == 0:
-            # set a basein directory for saving files
-            baseout = str(QFileDialog.getExistingDirectory(self, "select Directory",))
-            self.stream.params['baseout'] = baseout
-
-        if val == 'named':
-            # get name extension for the output directory, otherwise a timestamp is used
-            text, okPressed = QInputDialog.getText(self, "Enter directory name","Directory name:", QLineEdit.Normal, "")
-
-            if okPressed and text != '':
-                text = str(text)
-                dir_name = text.replace(' ', '_')
-
-        # create output directory
-        self.stream.set_output(dir_name=dir_name)
+            msg = 'Base output directory not set. Please select a directory.'
+            buttonReply = QMessageBox.question(self,
+                                           'message',
+                                           msg,
+                                           QMessageBox.Ok | QMessageBox.Cancel,
+                                           QMessageBox.Ok)
+            
+            if buttonReply == QMessageBox.Ok:
+                # set a basein directory for saving files
+                baseout = str(QFileDialog.getExistingDirectory(self, "select Directory",))
+            
+                print('directory selected:', baseout)
+                
+                self.stream.params['baseout'] = baseout
+            
+            msg = 'Consider setting baseout in safas/config.yaml'
+            buttonReply = QMessageBox.question(self,
+                                           'message',
+                                           msg,
+                                           QMessageBox.Ok,
+                                           QMessageBox.Ok)
+            
+        if action is not None:
+            val = action.text()
+            dir_name = None
+            
+            if val == 'named':
+                # get name extension for the output directory, otherwise a timestamp is used
+                text, okPressed = QInputDialog.getText(self, "Enter directory name","Directory name:", QLineEdit.Normal, "")
+    
+                if okPressed and text != '':
+                    text = str(text)
+                    dir_name = text.replace(' ', '_')
+        
+            # create output directory if 'output' button was clicked
+            self.stream.set_output(dir_name=dir_name)
+            
         self.update_io_status()
         self.update_params_status()
 
@@ -266,7 +286,7 @@ class MainPanel(QMainWindow):
             if ret:
                 self.buttons['setup'].setText('release')
                 self.buttons['view'].setEnabled(True)
-                for str in ['input','output','params', 'track']:
+                for str in ['input', 'params', 'output','track']:
                     self.buttons[str].setEnabled(False)
 
         if tx == 'release':
@@ -300,10 +320,13 @@ class MainPanel(QMainWindow):
 
     def click_track(self):
         """ load the track panel GUI for user control """
-        line = 'process the stream'
-        self.update_status(line)
-        self.stream.track()
-        self.buttons['track'].setEnabled(False)
+        # check if baseout has been set
+        if self.stream.params['baseout'] == 0: 
+            self.setup_output()
+        else: 
+            self.update_status('process the stream')
+            self.stream.track()
+            self.buttons['track'].setEnabled(False)
 
     def closeEvent(self, event=None):
         """ close window and exit the app context"""
@@ -312,13 +335,15 @@ class MainPanel(QMainWindow):
         self.destroy()
         sys.exit(0)
 
-def main(params=None, params_file=None):
+def main(config_file):
     """ for testing run stand-alone"""
     global app
     app = QApplication([])
-    window = MainPanel(params=params, params_file=params_file)
+    window = MainPanel(config_file=config_file)
     app.exec_()
 
 if __name__ == '__main__':
-    params_file = 'params.yml'
-    main(params_file=params_file, params=None)
+    file = os.path.dirname(safas.__file__)
+    fname = os.path.join(file, 'config.yml')
+    print(fname)
+    main(config_file=fname)

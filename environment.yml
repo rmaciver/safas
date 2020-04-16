@@ -1,4 +1,4 @@
-name: safas9
+name: safas_env
 channels:
   - defaults
   - conda-forge
@@ -10,3 +10,4 @@ dependencies:
   - pandas
   - scipy
   - pyaml
+  - openpyxl
