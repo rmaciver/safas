@@ -458,8 +458,8 @@ class Tracker(QObject):
                 match_errors = match_errors[mask]
 
                 # calculate x, y displacement & velocity components
-                disp_xy = np.diff(cents, axis=0)
-                vel_xy = disp_xy/dt[1:]
+                disp_xy = np.diff(cents, axis=0)*self.params['improcess']['pixel_size']/10**3
+                vel_xy = disp_xy/dt
                 vel_y = vel_xy[:,0]
                 vel_x = vel_xy[:,1]
 
