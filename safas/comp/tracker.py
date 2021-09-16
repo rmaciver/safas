@@ -65,7 +65,7 @@ class Tracker(QObject):
     display_frame_signal = pyqtSignal(object, int, name="display_frame_signal")
     status_update_signal = pyqtSignal(str, name="status_update_signal")
     restart_tracks_signal = pyqtSignal(str, name="restart_tracks_signal")
-    
+
     def __init__(self, parent=None, params=None, *args, **kwargs):
         super(Tracker, self).__init__(*args, **kwargs)
 
@@ -451,7 +451,6 @@ class Tracker(QObject):
 
             if len(cents) >= N:
                 dist = np.linalg.norm((cents[1:]-cents[:-1]), axis=1)
-
                 # calculate angle of each track wrt [1,0]
                 vect = cents[1:] - cents[:-1]
                 angles = [angle_between(np.array([1,0]), vt) for vt in vect]
@@ -460,24 +459,37 @@ class Tracker(QObject):
                 match_errors = np.array([t['match_error'] for t in track])
                 match_errors = match_errors[mask]
 
+                # calculate x, y displacement & velocity components
+                disp_xy = np.diff(cents, axis=0)
+                vel_xy = disp_xy/dt[1:]
+                vel_y = vel_xy[:,0]
+                vel_x = vel_xy[:,1]
+
                 # dataframe for track stats
                 track_stats = {'cents_x': cents[:,1],
                                'cents_y': cents[:,0],
-                                'dist': np.append(0, dist),
-                                'angles': np.append(0, angles),
-                                'velocity': np.append(0, v),
-                                'match_error': match_errors,
-                                 }
+                               'dist': np.append(0, dist),
+                               'angles': np.append(0, angles),
+                               'velocity': np.append(0, v),
+                               'velocity_x': np.append(0, vel_x),
+                               'velocity_y': np.append(0, vel_y),
+                               'match_error': match_errors,
+                               }
                 self.track_stats[i] = pd.DataFrame(track_stats)
 
                 # track excluded if angle is too large
                 if np.abs(np.nanmean(angles))< theta_max:
-                    vmean= np.mean(v)
-                    vstd = np.std(v)
-                    vN = len(v)
-                    track[0]['vel_mean'] = vmean
-                    track[0]['vel_std'] = vstd
-                    track[0]['vel_N'] = vN
+
+                    track[0]['vel_N'] = len(v)
+                    track[0]['vel_mean'] = np.mean(v)
+                    track[0]['vel_std'] = np.std(v)
+
+                    track[0]['vel_x_mean'] = np.mean(vel_x)
+                    track[0]['vel_x_std'] = np.std(vel_x)
+
+                    track[0]['vel_y_mean'] = np.mean(vel_y)
+                    track[0]['vel_y_std'] = np.std(vel_y)
+
                     T[i] = track
 
         # filtered tracks with velocity added are put back in the tracks dict
