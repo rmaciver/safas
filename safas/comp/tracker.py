@@ -388,14 +388,12 @@ class Tracker(QObject):
                     pk[ky] = tk['prop'][ky]
 
             if 'vel_mean' in tk:
-                for key in ['vel_N',
-                            'vel_mean', 'vel_std',
-                            'vel_x_mean', 'vel_x_std',
-                            'vel_y_mean','vel_y_std']:
+                for key in ['vel_N', 'vel_mean', 'vel_std','vel_x_mean',
+                            'vel_x_std', 'vel_y_mean','vel_y_std']:
                     pk[key] = tk[key]
 
             T.append(pk)
-    
+
         self.props_frame = pd.DataFrame(T)
 
     def save_obj_images(self, dirout=None):
