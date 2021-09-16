@@ -388,11 +388,14 @@ class Tracker(QObject):
                     pk[ky] = tk['prop'][ky]
 
             if 'vel_mean' in tk:
-                pk['vel_mean'] = tk['vel_mean']
-                pk['vel_N'] = tk['vel_N']
-                pk['vel_std'] = tk['vel_std']
-            T.append(pk)
+                for key in ['vel_N',
+                            'vel_mean', 'vel_std',
+                            'vel_x_mean', 'vel_x_std',
+                            'vel_y_mean','vel_y_std']:
+                    pk[key] = tk[key]
 
+            T.append(pk)
+    
         self.props_frame = pd.DataFrame(T)
 
     def save_obj_images(self, dirout=None):
@@ -497,7 +500,6 @@ class Tracker(QObject):
 
 def pad_images(prop, raw_frame, pad_val=10):
     """ pad the binary image and extract the intensity image"""
-
     # crop out the raw intensity image area
     pb = prop.bbox
     ps = np.array([(pb[0]-pad_val),(pb[1]-pad_val),
