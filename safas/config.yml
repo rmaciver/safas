@@ -1,8 +1,7 @@
 # defaults are 0, YAML reads as int, otherwise 'None' will be read as string
-basein: 0
-baseout: 0
-
-input: 0
+basein: C:/Users/rmcma/Data/2019_TUD_floc_data/raw/2019-12-11_PoH_data
+baseout: C:/Users/rmcma/Desktop/safas-update
+input: C:/Users/rmcma/Data/2019_TUD_floc_data/raw/2019-12-11_PoH_data/part1_KH2-RT2-SW2-RV2/000_KH2_01_DII12002_high_graylevel_01.avi
 output: 0
 
 improcess:

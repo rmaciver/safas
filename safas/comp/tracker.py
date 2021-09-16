@@ -63,7 +63,9 @@ KEYS = ['area',
 
 class Tracker(QObject):
     display_frame_signal = pyqtSignal(object, int, name="display_frame_signal")
-
+    status_update_signal = pyqtSignal(str, name="status_update_signal")
+    restart_tracks_signal = pyqtSignal(str, name="restart_tracks_signal")
+    
     def __init__(self, parent=None, params=None, *args, **kwargs):
         super(Tracker, self).__init__(*args, **kwargs)
 
@@ -233,7 +235,14 @@ class Tracker(QObject):
             A_props.append(self.tracks['id'][id_obj][-1]['prop'])
             A_ids.append(id_obj)
 
-        B_props = self.frames[index]['props']
+        # objects in most recent frame
+        if index in self.frames:
+            B_props = self.frames[index]['props']
+        else:
+            line = 'All tracks lost in at least one frame.'
+            self.status_update_signal.emit(line)
+            return None
+
         B_ids = np.arange(len(B_props))
         B_matches, error_min = matcher(A_props=A_props,
                                        A_ids=A_ids,

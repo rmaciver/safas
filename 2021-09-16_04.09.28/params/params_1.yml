@@ -1,0 +1,43 @@
+basein: C:/Users/rmcma/Data/2019_TUD_floc_data/raw/2019-12-11_PoH_data
+baseout: C:/Users/rmcma/Desktop/safas-update
+improcess:
+  filter: sobel_focus
+  fps: 22.737
+  img_dim:
+  - 2048
+  - 2592
+  - 8755
+  kwargs:
+    clearborder_filter: true
+    edge_dist: 1
+    edge_thresh: 80
+    focus_filter: true
+    img_thresh: 130
+    pre_filter: true
+  max_object_angle: 30
+  max_track_len: 40
+  min_track_len: 3
+  mode: find-all
+  n_frames: 40
+  pixel_size: 8.6
+  running: false
+  size: None
+input: C:/Users/rmcma/Data/2019_TUD_floc_data/raw/2019-12-11_PoH_data/part1_KH2-RT2-SW2-RV2/000_KH2_01_DII12002_high_graylevel_01.avi
+matcher:
+  area: 1
+  distance: 1
+  error_threshold: 100
+  squared: false
+output: C:/Users/rmcma/Desktop/safas-update\2021-09-16_04.09.28
+params_file: C:\Users\rmcma\Desktop\safas-update\safas\config.yml
+save:
+  clear: true
+  confirm: true
+  filename: props_frame_%05d.xlsx
+  save_frames: false
+  save_object_images: true
+viewer:
+  pos:
+  - 750
+  - 50
+  scale: 0.5

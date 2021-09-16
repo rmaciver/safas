@@ -13,7 +13,7 @@ import os
 from glob import glob
 import pandas as pd
 
-from shutil import copyfile 
+from shutil import copyfile
 
 from safas.gui.paramsdialog import ParamsDialog
 from safas.gui.matcherdialog import MatcherDialog
@@ -189,10 +189,10 @@ class TrackPanel(QMainWindow):
         self.matcherdialog = MatcherDialog(parent=self, params=self.parent.params['matcher'])
         self.matcherdialog.params_update_signal.connect(self.matcher_params_update)
         self.matcherdialog.setup()
-    
+
     def save_params_update(self, params):
         self.parent.params = params
-        
+
     def click_save(self):
         """ """
         if self.parent.handler.tracker.frame_index != None:
@@ -215,8 +215,9 @@ class TrackPanel(QMainWindow):
     def click_merge(self):
         """ click files to merge """
         self.mergepanel = MergePanel(parent=self)
+        print(self.mergepanel)
         self.mergepanel.show()
-        
+
     def click_next(self):
         """ """
         self.parent.viewer.next_frame()
@@ -399,11 +400,11 @@ class TrackLists(QMainWindow):
                     self.parent.track_panel.setEnabled(False)
                     for key in self.shortcuts:
                         self.shortcuts[key].setEnabled(False)
-                    
+
                     # +1 to index to avoid adding same object twice
                     self.Ni = index + 1
                     self.Nf = N + index
-                    
+
                     # list is watched in wait_queue_finished
                     self.all_inds = list(range(self.Ni, self.Nf))
 
