@@ -369,9 +369,6 @@ class Tracker(QObject):
         for t in tracks:
             # the first item
             tk = tracks[t][0]
-
-            #if tracks[t][-1] is not None:
-                # do not calculate for 'lost' objects
             pk = {}
             for ky in KEYS:
                 # calculate metric vals with pxcal
