@@ -10,13 +10,16 @@ from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
 
 import os
+from glob import glob
 import pandas as pd
+
+from shutil import copyfile
 
 from safas.gui.paramsdialog import ParamsDialog
 from safas.gui.matcherdialog import MatcherDialog
 from safas.gui.savedialog import SaveDialog
 from safas.gui.makeplot import MakePlot
-
+from safas.gui.mergepanel import MergePanel
 Xp = 0.12
 
 class TrackPanel(QMainWindow):
@@ -187,6 +190,9 @@ class TrackPanel(QMainWindow):
         self.matcherdialog.params_update_signal.connect(self.matcher_params_update)
         self.matcherdialog.setup()
 
+    def save_params_update(self, params):
+        self.parent.params = params
+
     def click_save(self):
         """ """
         if self.parent.handler.tracker.frame_index != None:
@@ -200,9 +206,6 @@ class TrackPanel(QMainWindow):
             if not self.parent.params['save']['confirm']:
                 self.save_tracker()
 
-    def save_params_update(self, params):
-        self.parent.params = params
-
     def save_tracker(self,):
         self.parent.handler.tracker.save()
 
@@ -210,26 +213,10 @@ class TrackPanel(QMainWindow):
             self.parent.restart_tracks()
 
     def click_merge(self):
-         """ click files to merge """
-         baseout = self.parent.params['baseout']
-         ret, spec = QFileDialog.getOpenFileNames(self,
-                                                  caption="Select files to merge",
-                                                  directory=baseout,
-                                                  filter='*.xlsx')
-
-         if len(ret) > 0:
-             dfs = [pd.read_excel(file) for file in ret]
-             result = pd.concat(dfs)
-             text, okPressed = QInputDialog.getText(self,
-                                                    "Enter filename for merged output:",
-                                                    "Name:",
-                                                    QLineEdit.Normal,
-                                                    "")
-
-             dirout = self.parent.params['output']
-             name = text + '.xlsx'
-             fname = os.path.join(dirout,'data', name)
-             result.to_excel(fname)
+        """ click files to merge """
+        self.mergepanel = MergePanel(parent=self)
+        print(self.mergepanel)
+        self.mergepanel.show()
 
     def click_next(self):
         """ """
@@ -408,14 +395,18 @@ class TrackLists(QMainWindow):
             if len(tracker.tracks['id']) > 0:
                 # check if n_frames method
                 if N > 1:
+                    # disable the GUI and keyboard shortcuts
                     self.parent.params['improcess']['running'] = False
                     self.parent.track_panel.setEnabled(False)
                     for key in self.shortcuts:
                         self.shortcuts[key].setEnabled(False)
 
-                    self.Ni = index
+                    # +1 to index to avoid adding same object twice
+                    self.Ni = index + 1
                     self.Nf = N + index
-                    self.all_inds = list(range(index, self.Nf))
+
+                    # list is watched in wait_queue_finished
+                    self.all_inds = list(range(self.Ni, self.Nf))
 
                     self.parent.handler.get_n_frames(indexi=self.Ni, indexf=self.Nf)
 

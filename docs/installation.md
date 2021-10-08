@@ -4,7 +4,14 @@ The preferred method to install Safas is to prepare a virtual environment. A Con
 Setup before install:
 * Download and install [Miniconda3](https://docs.conda.io/en/latest/miniconda.html) or [Anaconda](https://www.anaconda.com/distribution/#download-section)
 * Add Miniconda3/condabin to system PATH so 'conda' can be called from cmd prompt
-* Download and install atom https://atom.io/ a text editor to preserve yml and py formatting. 
+* Download and install atom https://atom.io/ a text editor to preserve yml and py formatting.
+
+## Setup conda path
+Before you can use conda on the command line, the condabin directory must be added to the path in windows environmental variables. Click the windows icon, then start typing "environmental variables", then follow the steps outline in the figure below.   
+
+<img align="center" src="../img/conda_bin_env_var.PNG" alt="add condabin" width="400">
+
+*Fig. 1: Add condabin to path*
 
 ## Virtual environment
 Download or pull (with git) the Safas package master branch from the command line or by pressing the green "Clone or Download" button at the top right-hand side of the page:

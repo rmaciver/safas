@@ -82,8 +82,8 @@ class Stream(QObject):
 
         self.params = config_params(params=self.params, params_file=self.params_file)
 
-    def set_output(self, dir_name=None):
-        self.params = set_dirout(self.params, dir_name=dir_name)
+    def set_output(self, dir_name=None, folders=None):
+        self.params = set_dirout(self.params, dir_name=dir_name, folders=folders)
 
     def setup(self):
         """
