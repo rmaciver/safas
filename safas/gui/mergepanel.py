@@ -93,13 +93,24 @@ class MergePanel(QMainWindow):
             directories =  file_dialog.selectedFiles()
         else:
             directories = file_dialog.getOpenFileNames(self, "", "/")
+ 
+        subdirs = os.listdir(directories[0])
+        required = []
+        for mode in self.mode: 
+            if self.mode[mode]['setting']: 
+                required.append(self.mode[mode]['subdir'] in subdirs)
 
+        if (not all(required)) or (required==[]) or ('merge' in directories[0]): 
+            msgBox = QMessageBox()
+            msgBox.setText("Path must contain files in 'data' and/or 'img' sub-folders.")
+            msgBox.exec_()
+            return None
         # compare length of dataframe and images in each subdir
         LDFS = []
         LIMS = []
 
         # set the output:
-        print('dirs:', directories)
+        merged_files = False
         if len(directories) > 0:
             for mode in self.mode:
                 if self.mode[mode]['setting']:
@@ -107,8 +118,6 @@ class MergePanel(QMainWindow):
                     filelist = []
 
                     for directory in directories:
-                        #
-
                         subdirs = sorted(os.listdir(os.path.join(directory, self.mode[mode]['subdir'])))
 
                         if len(subdirs) > 0:
@@ -121,30 +130,35 @@ class MergePanel(QMainWindow):
                                     di = pd.read_excel(files[0])
                                     LDFS.append(len(di))
                     if len(filelist) > 0:
-                        print('found files to merge')
-
+                        merged_files = True
                         if self.output is None:
                             self.output = gen_dirout(directory, subdirs=['data','imgs'])
 
                         if mode == 'dataframes':
-                            print('merge dataframes')
                             dfs = [pd.read_excel(file) for file in filelist]
                             for i, df in enumerate(dfs):
                                 df['set'] = i
                             result = pd.concat(dfs)
                             result.to_excel(os.path.join(self.output, 'data', 'merge.xlsx'))
-                            print('total frames:', len(result))
+            
                         if mode == 'images':
-                            print('copy images')
                             for i, file in enumerate(filelist):
                                  pth, fname = os.path.split(file)
                                  pth_base = os.path.basename(pth)
                                  fname = '%03d_frame_' % i + pth_base + '_' + fname
                                  newname = os.path.join(self.output, 'imgs', fname)
                                  copyfile(file, newname)
-                            print('total images:', len(filelist))
-        print('images in each subdir:', LIMS)
-        print('objects in each frame:', LDFS)
+            
+        
+        if not merged_files: 
+            message = 'No files merged'
+        else: 
+            message = "Merged data saved to: %s" % (os.path.join(self.output, 'data', 'merge.xlsx'))
+        
+        msgBox = QMessageBox()
+        msgBox.setText(message)
+        msgBox.exec_()
+ 
 
     def click_cancel(self):
         print('exit the panel')
