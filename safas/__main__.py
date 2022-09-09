@@ -4,9 +4,10 @@ __main__.py
 entry point to the safas gui
 
 """
-
 import sys
 import os
+sys.path.append(os.getcwd()) # hack for development
+
 from glob import glob
 from PyQt5.QtWidgets import QApplication
 
@@ -30,9 +31,9 @@ def main(config_file=None):
         config_file = os.path.join(safas.__path__[0], 'config.yml')
 
     app = QApplication([])
-    f = app.font();
-    f.setFamily("Monaco");
-    f.setPointSize(9);
+    f = app.font()
+    f.setFamily("Monaco")
+    f.setPointSize(9) 
     app.setFont(f)
 
     window = MainPanel(config_file)

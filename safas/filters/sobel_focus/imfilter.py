@@ -30,6 +30,8 @@ define_args = {'img_thresh': [np.int, [0, 255, 120]],
                'apply_clearedge_filter': [np.bool, [True, False, True]],
                'contour_thickness': [np.int, [1, 4, 1]]}
 
+EDGE_THRESH = 60
+TESTING = True
 # 3 must have a setup function. keep pattern as some filters require setup.
 def setup():
     return None
@@ -46,7 +48,8 @@ def imfilter(src,
 
     thresh, gray = prethresh_filter(src.copy(), img_thresh)
     ret, labels = cv2.connectedComponents(thresh)
-
+    
+    if TESTING: edge_thresh = EDGE_THRESH
     if apply_focus_filter:
        labels = focus_filter(labels, gray, edge_thresh)
 
