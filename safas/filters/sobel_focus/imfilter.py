@@ -23,12 +23,38 @@ from safas.filters.imfilters_module import (focus_filter,
 
 # 2 dict to setup the GUI control
 #   values are: [type, [MIN, MAX, DEFAULT]]
-define_args = {'img_thresh': [np.int, [0, 255, 120]],
-               'edge_thresh': [np.int, [0, 255, 120]],
-               'edge_distance': [np.int, [0,9, 1]],
-               'apply_focus_filter': [np.bool, [True, False, True]],
-               'apply_clearedge_filter': [np.bool, [True, False, True]],
-               'contour_thickness': [np.int, [1, 4, 1]]}
+# define_args = {'img_thresh': [np.int, [0, 255, 120]],
+#                'edge_thresh': [np.int, [0, 255, 120]],
+#                'edge_distance': [np.int, [0,9, 1]],
+#                'apply_focus_filter': [np.bool, [True, False, True]],
+#                'apply_clearedge_filter': [np.bool, [True, False, True]],
+#                'contour_thickness': [np.int, [1, 4, 1]]}
+
+PARAMS = [
+          {"name": "img_thresh",
+                "type": "int", 
+                "value": 120,
+                "limits": (0, 255)
+                },
+                {'name': 'edge_thresh', 
+                "type": "int",
+                "value": 90,
+                "limits": (0, 255)
+                },
+                {'name': 'apply_focus_filter', 
+                "type": "bool",
+                "value": True
+                },
+                {'name': 'apply_clear_edge_filter', 
+                "type": "bool",
+                "value": True
+                },
+                {'name': 'contour_thickness', 
+                "type": "int",
+                "value": 1,
+                "limits": (1, 4)
+                },
+        ]
 
 EDGE_THRESH = 60
 TESTING = True
@@ -39,9 +65,8 @@ def setup():
 def imfilter(src,
             img_thresh=100,
             edge_thresh=40,
-            edge_distance=2,
             apply_focus_filter=True,
-            apply_clearedge_filter=True,
+            apply_clear_edge_filter=True,
             contour_thickness=1,
             contour_color=(0,255,0),
             **kwargs):
@@ -53,7 +78,7 @@ def imfilter(src,
     if apply_focus_filter:
        labels = focus_filter(labels, gray, edge_thresh)
 
-    if apply_clearedge_filter:
+    if apply_clear_edge_filter:
         labels = clearedge_filter(labels)
 
     contour_img = add_contours(src.copy(), labels,

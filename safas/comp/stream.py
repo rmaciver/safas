@@ -125,6 +125,10 @@ class Stream(QObject):
         self.handler.process_finished_signal.connect(self.track_panel.tracks.handle)
         self.handler.tracker.display_frame_signal.connect(self.viewer.update)
 
+    def manualtrack(self): 
+        """ slow-but certain user-guided floc tracking """
+        self.manual_panel = ManualPanel(parent=self)
+
     def restart_tracks(self):
         """ a more thorough restart of the objects """
         self.params['improcess']['running'] = False

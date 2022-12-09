@@ -4,19 +4,19 @@ Created on Mon Nov 25 05:18:31 2019
 
 @author: Ryan
 """
+from copy import deepcopy
+from shutil import copyfile
+import os
+from glob import glob
 
 from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
 
-import os
-from glob import glob
 import pandas as pd
 
-from shutil import copyfile
-
-from safas.gui.paramsdialog import ParamsDialog
-from safas.gui.matcherdialog import MatcherDialog
+from safas.gui.filterdialog_pg import FilterDialog
+from safas.gui.matcherdialog_pg import MatcherDialog
 from safas.gui.savedialog import SaveDialog
 from safas.gui.makeplot import MakePlot
 from safas.gui.mergepanel import MergePanel
@@ -41,7 +41,6 @@ class TrackPanel(QMainWindow):
         self.layout = QGridLayout()
         self.setup_control_panel()
         self.setup_track_control()
-        #self.setup_mode_panel()
         self.filter_control_panel()
 
         w = QWidget()
@@ -53,7 +52,6 @@ class TrackPanel(QMainWindow):
         w = int(self.parent.dt_width*0.8)
         h = int(self.parent.dt_height*0.05)
         self.setGeometry(x, y, w, h)
-
 
         self.setMaximumWidth(self.parent.dt_width)
         self.show()
@@ -186,9 +184,11 @@ class TrackPanel(QMainWindow):
             self.parent.params[key][rb.name] = rb.value
 
     def match_control_panel(self):
+        """ Create ui panel to set object match criteria
+        """
         self.matcherdialog = MatcherDialog(parent=self, params=self.parent.params['matcher'])
-        self.matcherdialog.params_update_signal.connect(self.matcher_params_update)
-        self.matcherdialog.setup()
+        out = self.matcherdialog.exec_()
+        self.parent.params["matcher"] = deepcopy(self.matcherdialog.params)
 
     def save_params_update(self, params):
         self.parent.params = params
@@ -241,24 +241,15 @@ class TrackPanel(QMainWindow):
     def click_params_dialog(self):
         """ """
         imfilter = self.parent.handler.imfilter
-        self.paramsdialog = ParamsDialog(parent=self, imfilter=imfilter)
+        imparams = deepcopy(self.parent.params["improcess"]["kwargs"])
+        self.paramsdialog = FilterDialog(parent=self, imfilter=imfilter, params=imparams)
         self.paramsdialog.params_test_signal.connect(self.params_test)
-        self.paramsdialog.params_update_signal.connect(self.filter_params_update)
-        self.paramsdialog.setup()
+        self.paramsdialog.exec_()
+        self.parent.params["improcess"]["kwargs"] = deepcopy(self.paramsdialog.params)
 
     def params_test(self, params, **kwargs):
         H = self.parent.handler
         H.get_frame(H.frame_index, mode='test', params=params)
-
-    def filter_params_update(self, params, **kwargs):
-        """ update params from user input """
-        # need a work around to get pass the NN through
-        temp_params = self.parent.params['improcess']['kwargs']
-        self.parent.params['improcess']['kwargs'] = params
-
-    def matcher_params_update(self, params, **kwargs):
-        """ update params from user input """
-        self.parent.params['matcher'] = params
 
     def click_exit_track(self):
         """ """

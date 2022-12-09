@@ -86,60 +86,60 @@ def clearedge_filter(labels):
         labels[np.where(labels==v)] = 0
     return labels
 
-# def prethresh_filter(img, img_thresh=90, **kwargs):
-#     """ convert to grayscale, gaussian blur, apply threshold, label
-#     note: THRESH_BINARY_INV for dark objects in bright field """
-#     if img.ndim == 3:
-#         img2 = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-#     if img.ndim == 2:
-#         img2 = img.copy()
+def prethresh_filter(img, img_thresh=90, **kwargs):
+    """ convert to grayscale, gaussian blur, apply threshold, label
+    note: THRESH_BINARY_INV for dark objects in bright field """
+    if img.ndim == 3:
+        img2 = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    if img.ndim == 2:
+        img2 = img.copy()
 
-#     img2 = cv2.GaussianBlur(img2, (3, 3), 0)
-#     ret, thresh = cv2.threshold(img2, img_thresh, 255, cv2.THRESH_BINARY_INV)
+    img2 = cv2.GaussianBlur(img2, (3, 3), 0)
+    ret, thresh = cv2.threshold(img2, img_thresh, 255, cv2.THRESH_BINARY_INV)
 
-#     return (thresh, img2)
+    return (thresh, img2)
 
-# def marker_based_watershed(img, thresh, dist_factor=0, **kwargs):
-#     """ Apply marker based watershed transform the pre-thresholded image
-#     Refer to: https://docs.opencv.org/3.4/d3/db4/tutorial_py_watershed.html
-#     dist_factor may be increased from 0 to 1.
-#     """
-#     # noise removal
-#     kernel = np.ones((3,3),np.uint8)
-#     opening = cv2.morphologyEx(thresh,cv2.MORPH_OPEN,kernel, iterations = 2)
-#     # sure background area
-#     sure_bg = cv2.dilate(opening,kernel,iterations=3)
-#     # Finding sure foreground area
-#     dist_transform = cv2.distanceTransform(opening,cv2.DIST_L2, 5)
-#     dist_factor = dist_factor/100 # note: input as integer, but float used
-#     ret, sure_fg = cv2.threshold(dist_transform, dist_factor*dist_transform.max(), 255, 0)
-#     # Finding unknown region
-#     sure_fg = np.uint8(sure_fg)
-#     unknown = cv2.subtract(sure_bg,sure_fg)
-#     # Marker labelling
-#     ret, labels = cv2.connectedComponents(sure_fg)
-#     # Add one to all labels so that sure background is not 0, but 1
-#     labels = labels + 1
-#     # Now, mark the region of unknown with zero
-#     labels[unknown==255] = 0
+def marker_based_watershed(img, thresh, dist_factor=0, **kwargs):
+    """ Apply marker based watershed transform the pre-thresholded image
+    Refer to: https://docs.opencv.org/3.4/d3/db4/tutorial_py_watershed.html
+    dist_factor may be increased from 0 to 1.
+    """
+    # noise removal
+    kernel = np.ones((3,3),np.uint8)
+    opening = cv2.morphologyEx(thresh,cv2.MORPH_OPEN,kernel, iterations = 2)
+    # sure background area
+    sure_bg = cv2.dilate(opening,kernel,iterations=3)
+    # Finding sure foreground area
+    dist_transform = cv2.distanceTransform(opening,cv2.DIST_L2, 5)
+    dist_factor = dist_factor/100 # note: input as integer, but float used
+    ret, sure_fg = cv2.threshold(dist_transform, dist_factor*dist_transform.max(), 255, 0)
+    # Finding unknown region
+    sure_fg = np.uint8(sure_fg)
+    unknown = cv2.subtract(sure_bg,sure_fg)
+    # Marker labelling
+    ret, labels = cv2.connectedComponents(sure_fg)
+    # Add one to all labels so that sure background is not 0, but 1
+    labels = labels + 1
+    # Now, mark the region of unknown with zero
+    labels[unknown==255] = 0
 
-#     if img.ndim == 2:
-#         img = cv2.cvtColor(img, cv2.COLOR_GRAY2BGR)
+    if img.ndim == 2:
+        img = cv2.cvtColor(img, cv2.COLOR_GRAY2BGR)
 
-#     labels = cv2.watershed(img, labels)
+    labels = cv2.watershed(img, labels)
 
-#     # put background to 0 and -1 edges to 0, for compatibility with other segs
-#     labels -= 1
-#     labels[labels== -2] = 0
+    # put background to 0 and -1 edges to 0, for compatibility with other segs
+    labels -= 1
+    labels[labels== -2] = 0
 
-#     return labels
+    return labels
 
-# def add_contours(img, labels, contour_color, contour_thickness=1, **kwargs):
-#     ret, thresh = cv2.threshold(labels.astype(np.uint8), 1, 255, cv2.THRESH_BINARY)
-#     contours, hierarchy = cv2.findContours(thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
-#     contourimg = cv2.drawContours(img, contours, -1, contour_color, contour_thickness)
+def add_contours(img, labels, contour_color, contour_thickness=1, **kwargs):
+    ret, thresh = cv2.threshold(labels.astype(np.uint8), 1, 255, cv2.THRESH_BINARY)
+    contours, hierarchy = cv2.findContours(thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+    contourimg = cv2.drawContours(img, contours, -1, contour_color, contour_thickness)
 
-#     return contourimg
+    return contourimg
 
 # if __name__ =='__main__':
 #     print('test the focus_filter')

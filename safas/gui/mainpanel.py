@@ -61,6 +61,7 @@ class MainPanel(QMainWindow):
 
         self.update_params_status()
         self.update_io_status()
+        self.setup_video_analysis_mode()
         self.show()
 
     def setup_window(self):
@@ -115,6 +116,19 @@ class MainPanel(QMainWindow):
         status_box.setLayout(top_layout_2)
         self.layout.addWidget(status_box, 0, 0)
 
+    def setup_video_analysis_mode(self): 
+        """"""
+        top_layout_2 = QHBoxLayout()
+
+        ctrl_groupbox = QGroupBox('Analysis mode')  
+        layout = QGridLayout()
+
+        self.radio_analysis_mode = QRadioButton("Link-Manually")
+        self.radio_analysis_mode.setChecked(False)
+        top_layout_2.addWidget(self.radio_analysis_mode )
+        ctrl_groupbox.setLayout(top_layout_2)
+        self.layout.addWidget(ctrl_groupbox, 7, 0)
+        
     def setup_control_panel(self):
         """ buttons to load view analyze """
         top_layout_2 = QHBoxLayout()
@@ -324,8 +338,11 @@ class MainPanel(QMainWindow):
         if self.stream.params['baseout'] == 0: 
             self.setup_output()
         else: 
-            self.update_status('process the stream')
+            self.update_status('Process the video')
+           # if not self.radio_analysis_mode.isChecked(): 
             self.stream.track()
+            #else: 
+            #    print(f"Something completely different!!!")
             self.buttons['track'].setEnabled(False)
 
     def closeEvent(self, event=None):
