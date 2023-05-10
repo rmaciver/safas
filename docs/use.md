@@ -1,7 +1,7 @@
 # Use
 
-### Processing a video
-A description of the GUI components referred to here is given in the ''GUI description'' section.
+### Processing a floc sedimentation video
+This A description of the GUI components referred to here is given in the ''GUI description'' section.
 
 Steps:
 

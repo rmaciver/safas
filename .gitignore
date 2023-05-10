@@ -1,4 +1,33 @@
-*.pyc
-*.spyproject
-*__pycache__
-*.ipynb_checkpoints
+
+venv/
+target/ 
+archive/
+data/
+log/
+external/
+*.bat
+.gitconfig
+.git 
+.log
+output/
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+count_lines.py
+# C extensions
+*.so
+*.bat
+# Spyder project settings
+.spyderproject
+.spyproject
+
+# Jupyter Notebook
+.ipynb_checkpoints
+*.code-workspace
+# Mac/OSX
+.DS_Store
+
+# Windows
+Thumbs.db
+
