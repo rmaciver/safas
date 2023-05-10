@@ -79,21 +79,15 @@ class MergePanel(QMainWindow):
         """ output written to baseout """
         # select the directories to merge
         file_dialog = QFileDialog(self)
-        print('file_dialog:', file_dialog)
         file_dialog.setFileMode(QFileDialog.DirectoryOnly)
-
-        # tree_view = file_dialog.findChild(QTreeView)
-        # print('tree view:', tree_view)
-        # tree_view.setSelectionMode(QAbstractItemView.ExtendedSelection)
-        # list_view = file_dialog.findChild(QListView, "listView")
-        # print('list view:', list_view)
-        # list_view.setSelectionMode(QAbstractItemView.ExtendedSelection)
 
         if file_dialog.exec_() == QDialog.Accepted:
             directories =  file_dialog.selectedFiles()
         else:
             directories = file_dialog.getOpenFileNames(self, "", "/")
- 
+        print(f"selected output: {directories}")
+        #import pdb; pdb.set_trace()
+
         subdirs = os.listdir(directories[0])
         required = []
         for mode in self.mode: 
@@ -105,6 +99,10 @@ class MergePanel(QMainWindow):
             msgBox.setText("Path must contain files in 'data' and/or 'img' sub-folders.")
             msgBox.exec_()
             return None
+        
+        # quick merge
+       # for mode in ["images", "dataframes"]: 
+        
         # compare length of dataframe and images in each subdir
         LDFS = []
         LIMS = []

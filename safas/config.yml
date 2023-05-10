@@ -1,5 +1,5 @@
 # defaults are 0, YAML reads as int, otherwise 'None' will be read as string
-basein: C:\Users\rmcma\Dropbox\eng\projects\2020_2D3D\data\2020-09-23_ahmad_settling_videos
+basein: C:\Users\rmcma\Desktop
 baseout: C:\\Users\\rmcma\\Desktop\\floc_analysis
 input: 0
 output: 0
@@ -11,17 +11,17 @@ improcess:
   pixel_size: 8.6 # microns
   size: None   # dimensions of image. [height, width, length]
   max_track_len: 30
-  min_track_len: 5
+  min_track_len: 3
   max_object_angle: 50
   n_frames: 30
   filter: sobel_focus
   kwargs:
-    pre_filter: True
-    focus_filter: True
-    clearborder_filter: True
     img_thresh: 120
-    edge_thresh: 60
-    edge_dist: 1
+    edge_thresh: 90
+    apply_focus_filter: True
+    apply_clear_edge_filter: True
+    contour_thickness: 1
+
 
 save:
   confirm: True # confirm save settings each time
@@ -31,7 +31,7 @@ save:
   clear: True # default clear after save
 
 matcher:
-  error_threshold: 100
+  error_threshold: 500
   distance: 1
   area: 1
   squared: False
