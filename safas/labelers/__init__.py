@@ -17,4 +17,4 @@ for loader, module_name, is_pkg in pkgutil.walk_packages(__path__):
     
     loaded.append(module_name)
 
-globals()["AVAILABLE_FILTERS"] = loaded
+globals()["AVAILABLE_LABELERS"] = loaded

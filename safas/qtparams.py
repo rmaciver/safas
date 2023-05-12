@@ -27,7 +27,7 @@ PARAMS = [
 {'name': 'io', "title": "I/O", 'type': 'group', 
 'children': [
     {"name": "params_file", "type": "file", "fileMode": "ExistingFile", "psync": False,"value": "params.json"},
-    {'name': 'input_path', "title": "Input path", "type": "file", "fileMode": "Directory","value": None},
+    {'name': 'input_path', "title": "Input path", "type": "file", "fileMode": "Directory","value": None, "directory": None},
     {'name': 'output_path', "title": "Output path", "type": "file", "fileMode": "Directory","value": None},
     {"name": "data_file", "title": "Input file", "type": "file", "fileMode": "ExistingFile", "directory": None,"psync": False,"value": None},
     {"name": "process_on_new_frame", "type": "bool", "value": True},
@@ -39,10 +39,9 @@ PARAMS = [
 {"name": "labeler", "title": "Labeler", "type": "group",
  "children": [
     {"name": "common", "title": "Common", "type": "group", "children": 
-        [{"name": "params_file", "type": "file", "fileMode": "ExistingFile", "psync": False,"value": None},
-        {"name": "name", "type": "list", "value": "sobel_focus_v2", "values": ["sobel_focus", "sobel_focus_v2"]},
-        {"name": "process", "type": "bool", "value": True},
-        {"name": "reprocess_frame","title": "Reprocess Frame", "type": "action"}
+        [{"name": "params_file", "type": "file", "fileMode": "ExistingFile", "psync": False,"value": None, "visible": False},
+        {"name": "name", "type": "list", "value": "sobel_focus_v2", "values": ["edge_gradient"]},
+        {"name": "process", "type": "bool", "value": True}
         ]
     },
 ]
@@ -50,7 +49,7 @@ PARAMS = [
 {"name": "linker", "title": "Linker", "type": "group",
  "children": [
     {"name": "common", "title": "Common", "type": "group", "children": 
-        [{"name": "params_file", "type": "file", "fileMode": "ExistingFile", "psync": False,"value": None},
+        [{"name": "params_file", "type": "file", "fileMode": "ExistingFile", "psync": False,"value": None, "visible": False},
         {"name": "name", "type": "list", "value": "linear", "values": ["linear_flocs"]},
         {"name": "process", "type": "bool", "value": True},
         {"name": "obj-select-mode", "type": "list", "value": "auto", "values": ["auto", "none"]}
@@ -62,6 +61,7 @@ PARAMS = [
  "children": [
     {"name": "common", "title": "Common", "type": "group", "children": 
         [{"name": "params_file", "type": "file", "fileMode": "ExistingFile", "psync": False,"value": None},
+          
             {"name": "name", "type": "list", "value": "linear", "values": ["sed_exp"]},
 
         ]
@@ -87,14 +87,27 @@ PARAMS = [
       {'name': 'line_linewidth', 'type': 'float', 'value': 0.25, "limits": [0.1, 10]}
     ]}
 ]
-}
+},
+# {"name": "screencap", "title": "ScreenCap", "type": "group",
+#  "children": [
+#     {"name": "common", "title": "Common", "type": "group", "children": 
+#         [{"name": "x1", "type": "int", "value": None},
+#          {"name": "x2", "type": "int", "value": None},
+#          {"name": "get_cap", "title": "Record", "type": "action"},
+#          {"name": "filename", "type": "file", "fileMode": "ExistingFile", "psync": False,"value": None},
+
+#         ]
+#     },
+# ]
+# },
 ]     
 
 # TODO: populate linker and labler drop-down options with plugins available
 class ParamsView(QWidget): 
     """Load ui file and connect application logic"""
     params_update_signal = QtCore.Signal(dict, name="params_update_signal")
- 
+    data_file_signal = QtCore.Signal(dict, name="data_file_signal")
+
     def __init__(self, parent=None, context=None, layout=None, params=None, ui=True, *args, **kwargs):
         super(ParamsView, self).__init__(*args, **kwargs)
         self.parent = parent
@@ -106,7 +119,7 @@ class ParamsView(QWidget):
             params = deepcopy(PARAMS) # use default if None passed 
         self.p = Parameter.create(name='params', type='group', children=params)
         self.p.sigTreeStateChanged.connect(self.sync_to_ext) # sync external copies
-        
+        self.p.param("io","data_file").sigValueChanged.connect(self.data_file_changed)
         if ui: 
             # link pair of params
             self.pro_n = self.p.param('io','process_n_frames')
@@ -122,13 +135,16 @@ class ParamsView(QWidget):
                 layout = QVBoxLayout()
                 self.setLayout(layout)
             layout.addWidget(t)
-    
+
     # next two are linked
     def pro_n_Changed(self):
         self.pro_new.setValue(not self.pro_n.value(), blockSignal=self.pro_new_Changed)
 
     def pro_new_Changed(self):
         self.pro_n.setValue(not self.pro_new.value(), blockSignal=self.pro_n_Changed)
+
+    def data_file_changed(self): 
+        self.data_file_signal.emit(self.p.param("io","data_file").value())
 
     def params_from_file(self, from_config=False, **kwargs): 
         """ """   
@@ -171,6 +187,9 @@ class ParamsView(QWidget):
 
     def sync_to_ext(self): 
         """ update to external"""
+        path = self.p.param("io","input_path").value() 
+        if (path != "") & (path is not None) & (path !=0): 
+            self.p.param("io","data_file").setOpts(directory=path) # sync external copies
         # NOTE: sync with flat dict
         state = dict(self.p.saveState(filter="user")) # remove module/ UI element-instances
         state = ungroup_params(state)  # remove unnecessary value/ children keys

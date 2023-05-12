@@ -6,6 +6,7 @@ from PySide2 import QtWidgets, QtCore, QtGui
 from PySide2.QtCore import Qt, QTimer
 
 import cv2
+import numpy as np
 
 from .prints import print_viewer as print
 
@@ -100,7 +101,7 @@ class PhotoViewer(QtWidgets.QGraphicsView):
 
 class Viewer(PhotoViewer): 
     status_update_signal = QtCore.Signal(str)
-    frame_index_change = QtCore.Signal(int)
+    frame_idx_change = QtCore.Signal(int)
     remove_track_signal = QtCore.Signal(int)
     add_object_signal = QtCore.Signal(object, int)
     track_objects_signal = QtCore.Signal(bool)
@@ -148,10 +149,19 @@ class Viewer(PhotoViewer):
         #QtCore.QTimer().start(500)
 
     @QtCore.Slot(int)
-    def update_video_index(self, v): 
+    def update_video_index(self, frame_idx): 
         """ """
-        self.label.setText(str(v))
-        self.frame_index_change.emit(v)
+        self.frame_idx = frame_idx
+        self.label.setText(str(self.frame_idx))
+        self.frame_idx_change.emit(self.frame_idx)
+    
+    @QtCore.Slot(int)
+    def inc_video_index(self, frame_idx_inc): 
+        """ frame_idx_inc: +/- 1
+        """
+        self.frame_idx += frame_idx_inc
+        self.label.setText(str(self.frame_idx))
+        self.frame_idx_change.emit(self.frame_idx)
 
     @QtCore.Slot(int, int)
     def set_slider_range(self, vmin, vmax):
@@ -165,26 +175,22 @@ class Viewer(PhotoViewer):
     def update_frame(self, fr): 
         """         
         """
-        frame_idx = fr["frame_idx"]
+        self.frame_idx = fr["frame_idx"]
         self.viewer.setPhoto(fr["raw_image"])
 
-        track_idxs, obj_idxs = self.parent.handler.get_items_in_frame(frame_idx)
-        
-        #if (len(track_idxs) > 0) | (len(obj_idxs) > 0): 
+        track_idxs, obj_idxs = self.parent.handler.get_items_in_frame(self.frame_idx)
         self.init_annotations() # always clear on new frame
         
-        if len(track_idxs) > 0: self.add_tracks(frame_idx, track_idxs) 
-        if len(obj_idxs) > 0: self.add_objs(frame_idx, obj_idxs)
+        if len(track_idxs) > 0: self.add_tracks(self.frame_idx, track_idxs) 
+        if len(obj_idxs) > 0: self.add_objs(self.frame_idx, obj_idxs)
 
         try: # NOTE frame and index change may come from backend not UI
-            self.label.setText(str(fr["frame_idx"])) 
+            self.label.setText(str(self.frame_idx)) 
             self.slider.blockSignals(True)
-            self.slider.setValue(fr["frame_idx"])
+            self.slider.setValue(self.frame_idx)
             self.slider.blockSignals(False)
         except Exception as e: 
             print(f"Error: did not update label: {e}", error=True)
-
-        #self.viewer.set_zoom(10)
 
     def init_annotations(self, disp=True): 
         """ 

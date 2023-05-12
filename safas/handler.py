@@ -7,12 +7,12 @@ Prepare an image analysis pipline to label and
 import json
 import sys
 from pathlib import Path
-import multiprocessing as mp
+
 import time
 import functools
 from copy import deepcopy
-from concurrent.futures import ThreadPoolExecutor, as_completed
-mp.set_start_method("spawn", force=True)  # noqa
+from threading import Thread
+
 import queue
 import os
 from datetime import datetime
@@ -32,6 +32,7 @@ from .prints import print_handler as print
 from . import labelers
 from . import linkers
 from . import writers
+from .labelers import labeler_worker
 
 DEFAULT_CONFIG = {
     "output_path": None,
@@ -48,7 +49,7 @@ class QtInteractor(QtCore.QObject):
     """ Permit minimal connection with QT ui from the handler"""
     frame_ready_signal = QtCore.Signal(dict)
     frame_count_signal = QtCore.Signal(int, int)
-    frame_index_signal = QtCore.Signal(int)
+    frame_idx_signal = QtCore.Signal(int)
     update_lists_signal = QtCore.Signal(int) # signal is frame_idx
     ui_params_update_signal = QtCore.Signal(dict)
     ui_params_child_signal = QtCore.Signal(str, dict)
@@ -78,7 +79,7 @@ class SyncedDict(dict):
             print(f"qt_interactor.ui_params_signal not emitted: {e}")
 
 class Handler(QtCore.QObject): 
-
+    
     def __init__(self, parent=None, layout=None):
         super(Handler, self).__init__(parent)
 
@@ -94,7 +95,10 @@ class Handler(QtCore.QObject):
         self.annotations = dict()
         self.next_track_idx = 1
         self.config = None
-        
+        self.cap = None
+        self.linker = None
+        self.labeler = None
+
         try: 
             config_file ="resources/config/config.json"
             self.config = load_json(config_file) # config always stored here...
@@ -158,7 +162,7 @@ class Handler(QtCore.QObject):
         
         if data_file is None:
             try:  
-                data_file = self.params[("io","data_file",)]
+                data_file = self.params[("io","data_file")]
             except KeyError as e: 
                 if len(self.params) == 0: 
                     print(f"Params not loaded")
@@ -170,10 +174,11 @@ class Handler(QtCore.QObject):
             except Exception as e: 
                 print(f"Error: {e}")
 
-        #TODO: decide which loader to used based on file content
-        supported = ['video/x-msvideo']
+        if (data_file is None) | (data_file == "") | (data_file == 0): 
+            print(f"[cyan]Source[/cyan] No data file selected")
+            return None
         
-      #  try: 
+        supported = ['video/x-msvideo']  #TODO: decide which loader to used based on file content
         kind = filetype.guess(data_file)
 
         if kind is None:
@@ -269,6 +274,7 @@ class Handler(QtCore.QObject):
         filter_name must have been loaded to filters globals during __init__ 
         """
         errors = dict()
+        
         try: 
             mod_name = f"{func_name}.{node_type}"
             node_modules = globals()[f"{node_type}s"] # fragile but convenient to make this pattern
@@ -296,29 +302,6 @@ class Handler(QtCore.QObject):
             errors[f"{node_type}.params"] = e
         
         return (setup, func, params_list, errors)
-
-    def apply_labeler(self, frame_idx, frame_arg, labeler_kwargs):    
-        """ 
-        Parameters: 
-        --------
-        args: (from ThreadPoolExecuture frame generator)
-            result (bool): if video cap read was successful
-            frame (np.array): image MxNx1 or MxNx3
-            frame_idx (int): frame index in video cap 
-
-        Returns: 
-        --------
-            frame_idx (int): frame index
-            objs (dict): index and pixels of labeled objects
-        """
-        result, frame = frame_arg
-    
-        if result:     
-            objs = self.labeler.func(frame, frame_index=frame_idx, **labeler_kwargs)
-            return frame_idx, objs
-
-        else: 
-            return frame_idx, None
 
     def run_labeler(self, 
                     image_index=None, 
@@ -348,30 +331,17 @@ class Handler(QtCore.QObject):
         print(f"[cyan]Labeler[/cyan] [dark_green]{self.labeler.name}[/dark_green] on {x2-x1} images from {x1} to {x2-1} with {n_threads} threads")
         start = time.perf_counter()
 
-        # NOTE: results in order in generator & do not create new copy of data
-        frames = ((self.cap.read(), frame_idx) for frame_idx in range(x1, x2)) 
-
         try:  
             labeler_kwargs = flatten_dict.unflatten(self.params)["labeler"]["kwargs"]
         except Exception as e: 
             print(f"labeler kwargs not loaded from params: {e}")
         
-        with ThreadPoolExecutor(max_workers=n_threads) as executor: # TODO: for online use consider consumer queue
-            future_to_image = {
-                executor.submit(self.apply_labeler, frame_idx, self.cap.read(), labeler_kwargs): frame_idx for frame_idx in range(x1, x2)
-            }
-            processed_pages =  0
-            for future in progress.track(as_completed(future_to_image), 
-                                        description='[green]Labeling image data', 
-                                        total=x2-x1):
-                records = future.result()
-                page = future_to_image.pop(future)
-                # TODO: confirm overwrite and breaking tracks
-                # NOTE: used deepcopy otherwise memory leak from link to future.result()(?)
-                self.objs[deepcopy(records[0])] = deepcopy(records[1]) 
-        
+        # TODO: run in thread and release UI
+        objs = labeler_worker.run_labeler(self.cap, x1, x2, n_threads, self.labeler.func, labeler_kwargs)
+        self.objs.update(objs)
+
         finish = time.perf_counter()
-    
+      
         if display_table:  
             table = rich.table.Table(title="Objects labeled per image")
             table.add_column("Image index", justify="right", style="cyan", no_wrap=True)
@@ -421,6 +391,26 @@ class Handler(QtCore.QObject):
                                                     n_frames=x2-x1, 
                                                     obj_selection=obj_selection,
                                                     **linker_kwargs) 
+        
+        if display_table:  
+            table = rich.table.Table(title="Active tracks per image")
+            table.add_column("Image index", justify="right", style="cyan", no_wrap=True)
+            table.add_column("N tracks", style="magenta")
+            
+            disp_results = [] 
+            for frame_idx in range(x1, x2): 
+                track_idxs, obj_idxs = self.get_items_in_frame(frame_idx)
+                disp_results.append((str(frame_idx), str(len(track_idxs))))
+      
+            max_results = 10
+            if len(disp_results) > max_results*2: 
+                disp_results = disp_results[:max_results] + [("...", "...")] + disp_results[-max_results:]
+    
+            [table.add_row(item[0], item[1]) for item in disp_results]
+            
+            console = rich.console.Console()
+            console.print(table)
+        
         print(f"Object linking complete")
 
     def add_obj_to_track(self, frame_idx, obj_idx): 
@@ -460,36 +450,28 @@ class Handler(QtCore.QObject):
         if USE_QT: 
             self.qt_interactor.blockSignals(False) 
         
-    def set_frame_index(self, v): 
+    def set_frame_idx(self, v): 
         """ """
         if USE_QT: 
             try: 
-                self.qt_interactor.frame_index_signal.emit(v)
+                self.qt_interactor.frame_idx_signal.emit(v)
             except Exception as e: 
                 print(f"Frame index not emitted by qt_interactor: {e}")
 
     def build_frame(self, frame_idx):  
         """Assemble frame at given index for front-end"""
-        try: 
-            self.cap # check that cap is setup
-        except AttributeError as e: 
-            try: 
-                self.params[("io", "data_file",)] # check if params are present
-                print(f"[cyan]Source[/cyan] not set.", warning=True)
-            except: 
-                print(f"[cyan]Params[/cyan] not loaded. ", warning=True)     
+        if self.cap is None: 
+            print(f"[cyan]Source[/cyan] not loaded", warning=True)   
             return None
-        
+
         process_on_new_frame = self.params[("io", "process_on_new_frame")]
         process_n_frames = self.params[("io", "process_n_frames")]
         
         if process_on_new_frame & process_n_frames: 
             raise ValueError("Only one of process_on_new_frame or process_n_frames can be true")    
-
-        if self.params[('labeler','common','process')]: 
+                
+        if self.params[('labeler','common','process')] & (self.labeler is not None): 
             try: 
-                self.labeler # try to access parameter 
-                    # TODO: for online use, run_labeler as process so qtviewer may continue to update
                 if self.params[("labeler", "common","process")]: 
                     vi = self.run_labeler(image_index=frame_idx, 
                                     process_on_new_frame=process_on_new_frame, 
@@ -498,13 +480,13 @@ class Handler(QtCore.QObject):
                 else: 
                     vi = frame_idx
             except AttributeError as e: 
+                print(f"[cyan]Labeler[/cyan] error: {e}", errror=True)
                 vi = frame_idx
         else: 
             vi = frame_idx
 
-        if self.params[('linker','common','process')]: # Linker
+        if self.params[('linker','common','process')] & (self.linker is not None): # Linker
             try: 
-                self.linker # check attribute
                 obj_selection = self.params[("linker","common", "obj-select-mode")]
                 if self.params[("linker", "common", "process")]: 
                     self.run_linker(frame_idx=frame_idx, 
@@ -513,7 +495,7 @@ class Handler(QtCore.QObject):
                                 obj_selection=obj_selection
                     )
             except AttributeError as e: 
-                print(f"[cyan]Linker[/cyan] not loaded", debug=True)
+                print(f"[cyan]Linker[/cyan] error: {e}", errror=True)
         
         try:  # Update to latest frame
             self.cap.set(cv2.CAP_PROP_POS_FRAMES, vi)
@@ -531,13 +513,11 @@ class Handler(QtCore.QObject):
                 self.qt_interactor.frame_ready_signal.emit(self.latest_frame) # TODO: may optimize with a queue
             except Exception as e:  
                 print(f"Did not emit frame via frame_read_signal: {e}")
-                return self.latest_frame
+            self.qt_interactor.update_lists_signal.emit(vi)
+ 
         else: 
             return self.latest_frame
-
-        if USE_QT:
-            self.qt_interactor.update_lists_signal.emit(vi)
-
+        
     def relabel_frame(self): self.rebuild_frame(setLabelerOn=True) 
 
     def get_items_in_frame(self, frame_idx): 
@@ -569,7 +549,7 @@ class Handler(QtCore.QObject):
                 return None
             
             for track_idx in track_idxs:   
-                keys = [key for key in self.tracks if (key[0]==track_idx)]
+                keys = [key for key in self.tracks if ((key[0]==track_idx) & (key[1]<=frame_idx))]
        
                 if params_t["tracks"]["show_lines"]: 
                     centroids = np.array([self.tracks[key]["obj_centroid"] for key in keys])
@@ -697,15 +677,29 @@ class Handler(QtCore.QObject):
         print(f"{len(df)} rows saved to {filename}")
 
     def write_params(self, filename=None): 
-        if ((filename is None) | (filename=="")): 
-            filename = "resources/config/_last_params.json"
+        # write to output or safas module if it fails
+        if filename is None: 
+            ret = False
+            
+            output_path = self.params[("io","output_path")]
+            if (output_path is not None) & (output_path != "") & (output_path!=0):
+                filename = Path(self.params[("io","output_path")]).joinpath("_last_params.json")
+                ret = self.write_params(filename=filename)
+            
+            if not ret:  
+                filename = "resources/config/_last_params.json"
+                ret = self.write_params(filename=filename)
+            else: 
+                return True
         try: 
             params_t = flatten_dict.unflatten(self.params)
             with open(filename, "w") as f: json.dump(params_t, f, indent=2)
             print(f"[cyan]Params[/cyan] written to {Path(filename).name}")
         except Exception as e: 
             print(f"Parameters not written {Path(filename).name}: {e}", error=True)
-
+            return False
+        return True
+    
     def write_config(self): 
         try: 
             filename = "resources/config/config.json"
@@ -713,7 +707,7 @@ class Handler(QtCore.QObject):
             print(f"[cyan]Config[/cyan] written to {filename}")
         except Exception as e: 
             print(f"Config not written {Path(filename).name}: {e}", error=True)
-            
+    
 def microtime()->str:
     return datetime.now().strftime("%Y-%m-%d-%H-%M-%SS.%f")
 

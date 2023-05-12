@@ -1,36 +1,36 @@
 {
   "io": {
     "params_file": null,
-    "input_path": null,
-    "output_path": null,
-    "data_file": null,
+    "input_path": "C:\\Users\\rmcma\\Desktop\\floc-vids",
+    "output_path": "C:\\Users\\rmcma\\Desktop\\safas-output",
+    "data_file": "C:\\Users\\rmcma\\Desktop\\floc-vids\\004_reinerstieg_vornafen_26-9-19_01.avi",
     "process_on_new_frame": false,
     "process_n_frames": true,
     "n_frames": 1,
-    "n_threads": 1
+    "n_threads": 10
   },
   "labeler": {
     "common": {
       "params_file": "labeler.json",
-      "name": "sobel_focus_v2",
-      "process": true,
-      "reprocess_frame": null
+      "name": "edge_gradient",
+      "process": false
     },
     "kwargs": {
-      "img_thresh": 120,
-      "edge_thresh": 1,
-      "edge_distance": 3,
-      "apply_focus_filter": false,
       "thresh_inv": true,
-      "add_images": true,
-      "area_min_px": 5
+      "area_min_px": 5,
+      "thresh_val": 120.0,
+      "apply_grad_filter": true,
+      "apply_min_px_filter": true,
+      "cal_axis_length": false,
+      "grad_thresh_val": 30,
+      "add_images": false
     }
   },
   "linker": {
     "common": {
       "params_file": "linker.json",
       "name": "linear_flocs",
-      "process": true,
+      "process": false,
       "obj-select-mode": "auto"
     },
     "kwargs": {
@@ -70,8 +70,8 @@
       ],
       "contour_color_active": [
         255,
-        34,
-        251,
+        255,
+        17,
         125
       ],
       "contour_linewidth": 0.25
@@ -79,9 +79,9 @@
     "tracks": {
       "show_objs": true,
       "contour_color": [
-        0,
-        0,
         255,
+        255,
+        7,
         5
       ],
       "contour_linewidth": 1.0,

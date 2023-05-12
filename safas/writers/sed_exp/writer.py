@@ -84,6 +84,7 @@ def writer(output_path, tracks, objs, cap,
             cent = tracks[key]["obj_centroid"]
             area = tracks[key]["obj_area"]  
             contour = tracks[key]["obj_contour"]
+
             if len(contour) >= 5: 
                 ellipse = cv2.fitEllipse(tracks[key]["obj_contour"])
                 (xc,yc),(major_axis, minor_axis), angle = ellipse
@@ -94,6 +95,11 @@ def writer(output_path, tracks, objs, cap,
 
             match_error = tracks[key]["match_error"]
             
+            # perimeter = cv2.arcLength(contours_i[0],True)
+            # ellipse = cv2.fitEllipse(contours_i[0])
+            # (xc,yc),(major_axis, minor_axis), angle = ellipse
+            # ferret_x, ferret_y = np.where(mask>0)
+
             item = {
                 "track_idx": track_idx,
                 "frame_idx": frame_idx,
@@ -110,9 +116,10 @@ def writer(output_path, tracks, objs, cap,
             
             if save_obj_img: 
                 try: 
-                    img = tracks[key]["obj_img"]["img"]
-                    if not (np.array(img.shape) ==0).any(): 
-                        cv2.imwrite(str(Path(obj_img_path).joinpath(f"{track_idx}-{frame_idx}-{obj_idx}.png")), img)
+                    for im_type in ["obj_img", "obj_img_mask"]: 
+                        img = tracks[key][im_type]
+                        if not (np.array(img.shape) ==0).any(): 
+                            cv2.imwrite(str(Path(obj_img_path).joinpath(f"{track_idx}-{frame_idx}-{obj_idx}.png")), img)
                 except KeyError as e: 
                     None # image is not present - maybe not saved upstream
                 

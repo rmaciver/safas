@@ -10,3 +10,4 @@ pyqtgraph==0.13.2
 PySide2==5.15.2.1
 rich==13.3.3
 tqdm==4.65.0
+filetype

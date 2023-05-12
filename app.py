@@ -10,7 +10,7 @@ from datetime import datetime
 import queue
 import functools
 
-from PySide2 import QtWidgets, QtCore
+from PySide2 import QtWidgets, QtCore, QtGui
 
 import flatten_dict
 
@@ -26,55 +26,43 @@ def format_status_update(label, time_format=DATETIME_FORMAT):
     """ Textbox status for ui """
     return f"{timestamp(time_format=time_format)}:{label}"
 
-class TxtStatus(QtCore.QObject):
-    click = QtCore.Signal(str)
-
 class MainWindow(QtWidgets.QMainWindow):
     """ """
+    toggle_controls_signal = QtCore.Signal(bool)
+
     def __init__(self):
         super().__init__()
         self.resource_path = str(Path(__file__).absolute().parents[0].joinpath("resources"))
-        # load ui
-        ui_file = str(Path(self.resource_path).joinpath("ui/main.ui"))
+        ui_file = str(Path(self.resource_path).joinpath("ui/main.ui")) # load ui
         safas.loader_util.loadUi(ui_file, self)
-        # custom close event
-        self.installEventFilter(self)
-        
-        # connect messages and command line to text status
-        self.txt_signal = TxtStatus()
-        self.txt_signal.click.connect(self.text_status.append)
-        self.txt_signal.click.emit(format_status_update("*** Safas v0.3 ***"))
-        self.txt_signal.click.emit(format_status_update(" Command Line Development Mode"))
-        
-        self.handler = safas.handler.Handler() # everything should go through this
+        self.installEventFilter(self) # custom close event
+
+        self.handler = safas.handler.Handler() 
 
         self.viewer = safas.qtviewer.Viewer(parent=self, layout=self.layout_video)
-        self.viewer.frame_index_change.connect(self.handler.build_frame) 
-        self.viewer.status_update_signal.connect(self.text_status.append)
+        self.viewer.frame_idx_change.connect(self.build_frame) 
 
         self.params = safas.qtparams.ParamsView(parent=self, layout=self.layout_params)
         
         # image interaction
         self.handler.qt_interactor.frame_ready_signal.connect(self.viewer.update_frame)
         self.handler.qt_interactor.frame_count_signal.connect(self.viewer.set_slider_range)
-        self.handler.qt_interactor.frame_index_signal.connect(self.viewer.update_frame)
+        self.handler.qt_interactor.frame_idx_signal.connect(self.viewer.update_frame)
 
         # parameters syncing
         self.handler.qt_interactor.ui_params_update_signal.connect(self.params.sync_from_ext)
         self.handler.qt_interactor.ui_params_child_signal.connect(self.params.insert_child_group)
+        
         self.params.params_update_signal.connect(self.handler.update_params) 
-        self.params.p.param("labeler","common","reprocess_frame").sigActivated.connect(self.handler.relabel_frame)
+        self.params.data_file_signal.connect(self.handler.load_source) 
         
         self.params.p.param("labeler","common","name").sigValueChanged.connect(functools.partial(self.handler.load_node, "labeler"))
         self.params.p.param("linker","common","name").sigValueChanged.connect(functools.partial(self.handler.load_node, "linker"))
         self.params.p.param("writer","common","name").sigValueChanged.connect(functools.partial(self.handler.load_node, node_name="linker"))
-        
-        self.button_save_objects.clicked.connect(self.handler.dump_labeled_frames)
-        self.button_compile_outputs.clicked.connect(self.handler.compile_outputs)
-        
+
+        # self.params.p.param("screencap","common","get_cap").sigActivated.connect(self.get_screencap)
         # avoid passing all ui params to TrackTab - connect out here
         self.tracktab = TrackTab(parent=self, 
-                                 button_save_tracks=self.button_save_tracks,
                                  button_remove_track=self.button_remove_track,
                                  button_remove_all_tracks=self.button_remove_all_tracks,
                                  button_add_object=self.button_add_object,
@@ -88,9 +76,16 @@ class MainWindow(QtWidgets.QMainWindow):
         self.tracktab.ui_del_tracks_signal.connect(self.viewer.del_tracks)
         self.handler.qt_interactor.update_lists_signal.connect(self.tracktab.update_lists)
         
+        self.control_buttons = ["button_step_forward", "button_reprocess", 
+                                "button_step_back", "button_reprocess",
+                                "button_save","button_compile", 
+                                "radio_linking", "radio_labeling"]
+        
+        self.setup_control_buttons()
+        self.button_compile.clicked.connect(self.handler.compile_outputs)
+        self.radio_process.clicked.connect(self.activate_radio)
         # startup macro
         self.handler.load_params()
-        self.handler.load_source()
         self.handler.load_node("labeler")
         self.handler.load_node("linker")
         self.handler.load_node("writer")
@@ -102,7 +97,45 @@ class MainWindow(QtWidgets.QMainWindow):
             return True
         return super(MainWindow, self).eventFilter(obj, event)
 
-# track lists here
+    def activate_radio(self, v): 
+        [self.params.p.param(key,"common","process").setValue(v) for key in ["labeler","linker"]]
+  
+    @QtCore.Slot(int)
+    def build_frame(self, frame_idx):
+        self.toggle_controls_signal.emit(False)
+        self.handler.build_frame(frame_idx) 
+        self.toggle_controls_signal.emit(True)
+
+    # ---- behaviour of buttons below image viewer
+    def setup_control_buttons(self): 
+        """ """
+        buttons = ["button_step_back", 
+                "button_step_forward",
+                "button_reprocess",
+                "button_save"]
+        
+        icons = ["ui/control-stop-180.png",
+                "ui/control-stop.png",
+                "ui/arrow-circle-225.png",
+                "ui/disk--arrow.png",
+                ]
+        
+        for b, ic in zip(buttons, icons): 
+            icon = QtGui.QIcon(str(Path(self.resource_path).joinpath(ic)))
+            button = getattr(self, b)
+            button.setIcon(icon)
+            button.clicked.connect(getattr(self, b.split("button_")[-1]))
+
+    def step_back(self):
+        """ """ 
+        self.params.p.param("labeler","common","process").setValue(False)
+        self.params.p.param("linker","common","process").setValue(False)
+        self.viewer.inc_video_index(-1)
+    
+    def step_forward(self): self.viewer.inc_video_index(1)
+    def reprocess(self): self.handler.relabel_frame()
+    def save(self): self.handler.save_tracks()
+
 class TrackTab(QtCore.QObject): 
     """ """
     ui_add_tracks_signal = QtCore.Signal(int, int, bool)
@@ -112,7 +145,6 @@ class TrackTab(QtCore.QObject):
 
     def __init__(self,
                 parent,
-                button_save_tracks,
                 button_remove_track,
                 button_remove_all_tracks,
                 button_add_object,
@@ -122,7 +154,6 @@ class TrackTab(QtCore.QObject):
                 **kwargs): 
         super(TrackTab, self).__init__(parent) # is this necessary? 
         self.parent = parent # allow access to handler
-        self.button_save_tracks = button_save_tracks
         self.button_remove_track = button_remove_track
         self.button_remove_all_tracks = button_remove_all_tracks
         self.button_add_object = button_add_object
@@ -134,7 +165,6 @@ class TrackTab(QtCore.QObject):
         self.button_add_object.clicked.connect(self.add_obj_to_track)
         self.button_add_all_objects.clicked.connect(self.add_all_objs)
 
-        self.button_save_tracks.clicked.connect(self.save_tracks)
         # NOTE: (!) using functools to ensure kwarg is being passed, resetting to False always for some reason
         self.button_remove_track.clicked.connect(functools.partial(self.remove_track, rebuild_frame=True))
         self.button_remove_all_tracks.clicked.connect(self.remove_all_tracks)
@@ -173,9 +203,6 @@ class TrackTab(QtCore.QObject):
         self.hl_obj_blocker.unblock()
         self.hl_track_blocker.unblock()
 
-    def save_tracks(self): 
-        self.parent.handler.save_tracks()
-        
     def remove_track(self, rebuild_frame=True, **kwargs): 
         track_idx = self.list_tracks.currentItem()
         
@@ -188,8 +215,7 @@ class TrackTab(QtCore.QObject):
         item = self.list_tracks.takeItem(self.list_tracks.currentRow()) 
         self.ui_del_tracks_signal.emit(self.frame_idx, track_idx)
 
-        if rebuild_frame: 
-            self.parent.handler.rebuild_frame()
+        if rebuild_frame: self.parent.handler.rebuild_frame()
 
         self.list_tracks.setCurrentRow(max(0, row-1))
 
