@@ -1,9 +1,8 @@
-
 venv/
-target/ 
 archive/
-data/
 log/
+build/
+dist/
 external/
 *.bat
 .gitconfig

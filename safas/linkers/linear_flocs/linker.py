@@ -21,12 +21,6 @@ import numpy as np
 from matplotlib import pyplot as plt
 from rich import progress
 
-# NOTE: path hack to get relative import above top of package. to fix on install. 
-path = str(Path(__file__).absolute().parents[2])
-sys.path.append(path) # Adds higher directory to python modules path.
-
-from prints import print_linker as print
-
 params = {
     "name": "kwargs", 
     "title": "Parameters",

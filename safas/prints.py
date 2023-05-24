@@ -9,11 +9,15 @@ from rich.logging import RichHandler
 #level = "NOTSET"
 level = "INFO"
 
+formatter = logging.Formatter('[%(asctime)s] p%(process)s {%(pathname)s:%(lineno)d} %(levelname)s - %(message)s','%m-%d %H:%M:%S')
+fhandler = logging.FileHandler(".log")
+fhandler.setFormatter(formatter)
+
 logging.basicConfig(
     level=level,
     format="%(message)s",
     datefmt="|",  # Not needed w/balena, use [%X] otherwise
-    handlers=[RichHandler(markup=True)],
+    handlers=[RichHandler(markup=True), fhandler],
     )
 
 log = logging.getLogger("rich")
@@ -23,6 +27,7 @@ def print_process(
     ):
     msg = " ".join([str(arg) for arg in args])  # Concatenate all incoming strings or objects
     rich_msg = f"[{color}]{process_name}[/{color}] | {msg}"
+    
     if error:
         log.error(rich_msg)
     elif warning:

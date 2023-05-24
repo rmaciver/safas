@@ -29,17 +29,22 @@ from rich import progress
 
 # safas modules
 from .prints import print_handler as print
-from . import labelers
-from . import linkers
-from . import writers
-from .labelers import labeler_worker
+from . import labeler_worker
+
+from .labelers.edge_gradient import labeler as edge_gradient
+from .linkers.linear_flocs import linker as linear_flocs
+from .writers.sed_exp import writer as sed_exp
+
+labeler_modules = {"edge_gradient": edge_gradient,}
+linker_modules = {"linear_flocs": linear_flocs}
+writer_modules = {"sed_exp": sed_exp}
 
 DEFAULT_CONFIG = {
     "output_path": None,
     "auto_reload": True              
 }
 
-[os.makedirs(path, exist_ok=True) for path in ["resources/ui", "resources/config"]]
+[os.makedirs(path, exist_ok=True) for path in ["ui", "config"]]
 
 USE_QT = True
 
@@ -100,7 +105,7 @@ class Handler(QtCore.QObject):
         self.labeler = None
 
         try: 
-            config_file ="resources/config/config.json"
+            config_file ="config/config.json"
             self.config = load_json(config_file) # config always stored here...
         except Exception as e: 
             print(f"Config not loaded from file {e}", warn=True)
@@ -121,9 +126,9 @@ class Handler(QtCore.QObject):
             filename = str(Path(self.config["output_path"]).joinpath("_last_params.json"))
             user_params = self._load_p(filename)
         if user_params is None: 
-            user_params = self._load_p("resources/config/_last_params.json")
+            user_params = self._load_p("config/_last_params.json")
         if user_params is None: 
-            user_params = self._load_p("resources/config/params.json")
+            user_params = self._load_p("config/params.json")
         if user_params is None: 
             print(f"Params not loaded from locations available. Please select another params.json file", warning=True)
             return None
@@ -276,9 +281,10 @@ class Handler(QtCore.QObject):
         errors = dict()
         
         try: 
-            mod_name = f"{func_name}.{node_type}"
-            node_modules = globals()[f"{node_type}s"] # fragile but convenient to make this pattern
-            mod = getattr(node_modules, mod_name)
+            #mod_name = f"{func_name}.{node_type}"
+            mod = globals()[f"{node_type}_modules"][func_name] # fragile but convenient to make this pattern
+            
+            #mod = getattr(node_modules, node_type)
         except Exception as e: 
             mod = None
             errors["module"] = e
@@ -337,6 +343,7 @@ class Handler(QtCore.QObject):
             print(f"labeler kwargs not loaded from params: {e}")
         
         # TODO: run in thread and release UI
+        
         objs = labeler_worker.run_labeler(self.cap, x1, x2, n_threads, self.labeler.func, labeler_kwargs)
         self.objs.update(objs)
 
@@ -687,7 +694,7 @@ class Handler(QtCore.QObject):
                 ret = self.write_params(filename=filename)
             
             if not ret:  
-                filename = "resources/config/_last_params.json"
+                filename = "config/_last_params.json"
                 ret = self.write_params(filename=filename)
             else: 
                 return True
@@ -702,7 +709,7 @@ class Handler(QtCore.QObject):
     
     def write_config(self): 
         try: 
-            filename = "resources/config/config.json"
+            filename = "config/config.json"
             with open(filename, "w") as f: json.dump(self.config, f)
             print(f"[cyan]Config[/cyan] written to {filename}")
         except Exception as e: 

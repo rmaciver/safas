@@ -32,9 +32,13 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def __init__(self):
         super().__init__()
-        self.resource_path = str(Path(__file__).absolute().parents[0].joinpath("resources"))
-        ui_file = str(Path(self.resource_path).joinpath("ui/main.ui")) # load ui
-        safas.loader_util.loadUi(ui_file, self)
+        try: 
+            self.resource_path = str(Path(__file__).absolute().parents[0])
+            ui_file = str(Path(self.resource_path).joinpath("ui/main.ui")) # load ui
+            safas.loader_util.loadUi(ui_file, self)
+        except Exception as e: 
+            print(f"ui not loaded: {e}", error=True)
+            return None
         self.installEventFilter(self) # custom close event
 
         self.handler = safas.handler.Handler() 

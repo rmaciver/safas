@@ -19,13 +19,6 @@ Identify objects that have a "crisp" outline (i.e. above a threshold in the grad
 import numpy as np
 import cv2
 
-# NOTE: path hack to get relative import above top of package. to fix on install. 
-from pathlib import Path
-import sys
-path = str(Path(__file__).absolute().parents[2])
-sys.path.append(path) # Adds higher directory to python modules path.
-from prints import print_labeler as print
-
 params = {
     "name": "kwargs", 
     "title": "Parameters",

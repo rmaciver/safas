@@ -10,12 +10,27 @@ from concurrent.futures import ThreadPoolExecutor
 
 from rich.progress import Progress
 
-# NOTE: path hack to get relative import above top of package. to fix on install. 
-from pathlib import Path
-import sys
-path = str(Path(__file__).absolute().parents[1])
-sys.path.append(path) # Adds higher directory to python modules path.
-from prints import print_labeler as print
+import logging
+log = logging.getLogger("rich")
+
+# TODO: get relative import of prints from safas
+def print_process(
+    color, process_name, *args, error=False, warning=False, exception=False, **kwargs
+    ):
+    msg = " ".join([str(arg) for arg in args])  # Concatenate all incoming strings or objects
+    rich_msg = f"[{color}]{process_name}[/{color}] | {msg}"
+    
+    if error:
+        log.error(rich_msg)
+    elif warning:
+        log.warning(rich_msg)
+    elif exception:
+        log.exception(rich_msg)
+    else:
+        log.info(rich_msg)
+
+def print(*args, **kwargs):
+    print_process("bright_yellow", "labeler", *args, **kwargs)
 
 def _producer(q_in, cap, x1, x2):
     """ """
@@ -24,7 +39,6 @@ def _producer(q_in, cap, x1, x2):
         result, image = cap.read()
         q_in.put((image, frame_idx))
     q_in.put((None, None))
-    print(f"Labeler producer finished")
 
 def _consumer(q_in, q_out, labeler_func, labeler_kwargs):    
     """

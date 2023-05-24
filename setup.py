@@ -1,6 +1,6 @@
 from setuptools import setup, find_packages
 from safas import __version__
-#https://chriswarrick.com/blog/2014/09/15/python-apps-the-right-way-entry_points-and-scripts/
+
 setup(
     name='safas',
     version=__version__,

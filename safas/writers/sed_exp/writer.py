@@ -21,14 +21,15 @@ import cv2
 import numpy as np
 from matplotlib import pyplot as plt
 import pandas as pd
+import logging
 
 from rich import progress
 
-# NOTE: path hack to get relative import above top of package. to fix on install. 
-path = str(Path(__file__).absolute().parents[2])
-sys.path.append(path) # Adds higher directory to python modules path.
+# # NOTE: path hack to get relative import above top of package. to fix on install. 
+# path = str(Path(__file__).absolute().parents[2])
+# sys.path.append(path) # Adds higher directory to python modules path.
 
-from prints import print_writer as print
+# from prints import print_writer as print
 
 params = {
     "name": "kwargs", 
@@ -46,6 +47,27 @@ params = {
     ]
 }
 
+log = logging.getLogger("rich")
+
+# TODO: get relative import of prints from safas
+def print_process(
+    color, process_name, *args, error=False, warning=False, exception=False, **kwargs
+    ):
+    msg = " ".join([str(arg) for arg in args])  # Concatenate all incoming strings or objects
+    rich_msg = f"[{color}]{process_name}[/{color}] | {msg}"
+    
+    if error:
+        log.error(rich_msg)
+    elif warning:
+        log.warning(rich_msg)
+    elif exception:
+        log.exception(rich_msg)
+    else:
+        log.info(rich_msg)
+
+def print(*args, **kwargs):
+    print_process("dark_green", "writer", *args, **kwargs)
+
 def setup(): return None
 
 def writer(output_path, tracks, objs, cap, 
@@ -59,7 +81,6 @@ def writer(output_path, tracks, objs, cap,
     """ 
     """
     if len(tracks) == 0: 
-        print(f"No tracks to save")
         return tracks, objs
     
     if save_obj_img: 
@@ -90,8 +111,8 @@ def writer(output_path, tracks, objs, cap,
                 (xc,yc),(major_axis, minor_axis), angle = ellipse
             else: 
                 # cannot calculate fitEllipse when contour is < 5
-                major_axis = max(tracks[key]["obj_bbox"])
-                minor_axis = min(tracks[key]["obj_bbox"] )
+                major_axis = max(tracks[key]["obj_bbox"][2:])
+                minor_axis = min(tracks[key]["obj_bbox"][2:])
 
             match_error = tracks[key]["match_error"]
             
@@ -113,15 +134,31 @@ def writer(output_path, tracks, objs, cap,
              }
             
             items.append(item)
-            
-            if save_obj_img: 
-                try: 
-                    for im_type in ["obj_img", "obj_img_mask"]: 
-                        img = tracks[key][im_type]
-                        if not (np.array(img.shape) ==0).any(): 
-                            cv2.imwrite(str(Path(obj_img_path).joinpath(f"{track_idx}-{frame_idx}-{obj_idx}.png")), img)
-                except KeyError as e: 
-                    None # image is not present - maybe not saved upstream
+
+
+        # TODO: setup save cropped images and masks
+       
+        # if save_obj_img: 
+        #     try: 
+        #         x, y, dx, dy = tracks[key]["obj_bbox"]
+        #         pad = 5
+                
+        #         xmin = np.clip(x-pad, a_min=0, a_max=src.shape[0]) 
+        #         xmax = np.clip(x+dx+pad, a_min=0, a_max=src.shape[0])
+        #         ymin = np.clip(y-pad, a_min=0, a_max=src.shape[1]) 
+        #         ymax = np.clip(y+dy+pad, a_min=0, a_max=src.shape[1])
+
+        #         obj_img = src[xmin:xmax, ymin:ymax]
+        #         obj_mask = mask[xmin:xmax, ymin:ymax]
+        #     else: 
+        #         obj_img, obj_mask = None, None
+
+        #         for im_type in ["obj_img", "obj_img_mask"]: 
+        #             img = tracks[key][im_type]
+        #             if not (np.array(img.shape) ==0).any(): 
+        #                 cv2.imwrite(str(Path(obj_img_path).joinpath(f"{track_idx}-{frame_idx}-{obj_idx}.png")), img)
+        #     except KeyError as e: 
+        #         None # image is not present - maybe not saved upstream
                 
         df = pd.DataFrame(items)
         # summary stats
