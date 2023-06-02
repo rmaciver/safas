@@ -23,7 +23,7 @@ logging.basicConfig(
 log = logging.getLogger("rich")
 
 def print_process(
-    color, process_name, *args, error=False, warning=False, exception=False, **kwargs
+    color, process_name, *args, error=False, warning=False, exception=False, debug=False, **kwargs
     ):
     msg = " ".join([str(arg) for arg in args])  # Concatenate all incoming strings or objects
     rich_msg = f"[{color}]{process_name}[/{color}] | {msg}"
@@ -34,6 +34,8 @@ def print_process(
         log.warning(rich_msg)
     elif exception:
         log.exception(rich_msg)
+    elif debug:
+        log.debug(rich_msg)
     else:
         log.info(rich_msg)
 

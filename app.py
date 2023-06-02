@@ -41,8 +41,131 @@ class MainWindow(QtWidgets.QMainWindow):
             return None
         self.installEventFilter(self) # custom close event
 
-        self.handler = safas.handler.Handler() 
+        for label in ["Save_Tracks", "Merge_Outputs", "Load_Parameters", "Save_Parameters"]: 
+            getattr(self, f"action{label}").triggered.connect(getattr(self, f"click_{label}"))
 
+        self.load_state()
+    
+    def click_Save_Tracks(self): 
+        """ """
+        self.handler.save_tracks()
+
+    def click_Merge_Outputs(self): 
+        """ """
+        self.handler.compile_outputs()
+
+    def click_Save_Parameters(self): 
+        """ """
+        try: # case where no io/ base_output key present
+            pth = self.p.param('io', 'base_input').value
+        except Exception as error: 
+            pth = None
+            
+        out = QtWidgets.QFileDialog().getSaveFileName(parent=None, 
+                                            directory=pth, 
+                                            caption="Save as ... ",
+                                            filter="JSON (*.json)")
+        
+        if len(out) == 0: return False
+        filename = Path(out[0])
+        if filename.suffix != ".json": return False
+        self.handler.write_params(filename=filename)
+
+    def click_Load_Parameters(self): 
+        """ """
+        try: # case where no io/ base_output key present
+            pth = self.p.param('io', 'base_input').value
+        except Exception as error: 
+            pth = None
+            
+        out = QtWidgets.QFileDialog().getOpenFileName(parent=None, 
+                                            directory=pth, 
+                                            caption="Select parameters file",
+                                            filter="JSON (*.json)")
+        if len(out) == 0: return False
+        filename = Path(out[0])
+        if filename.suffix != ".json": return False
+        self.clear_ui()
+        self.load_state(filename=filename)
+        
+    def clear_ui(self, disp=False): 
+        """ custom removal of ui components on reload"""
+        try: 
+            name = "viewer.fr"
+            self.viewer.fr.deleteLater()
+        except Exception as e: 
+            if disp: print(f"could not remove {name}: {e}")
+
+        try: 
+            name = "viewer.label"
+            self.viewer.label.deleteLater()
+        except Exception as e: 
+            if disp: print(f"could not remove {name}: {e}")
+
+        try: 
+            name = "viewer.slider"
+            self.viewer.slider.deleteLater()
+        except Exception as e: 
+            if disp: print(f"could not remove {name}: {e}")
+        
+        try: 
+            name = "viewer"
+            self.viewer.deleteLater()
+        except Exception as e: 
+            if disp: print(f"could not remove {name}: {e}")
+        
+        try: 
+            name = "params.p"
+            self.params.p.deleteLater()
+        except Exception as e: 
+            if disp: print(f"could not remove {name}: {e}")
+
+        try: 
+            name = "params.t"
+            self.params.t.deleteLater()
+        except Exception as e: 
+            if disp: print(f"could not remove {name}: {e}")
+
+        try: 
+            name = "params"
+            del self.params
+        except Exception as e: 
+            if disp: print(f"could not remove {name}: {e}")
+
+        try: 
+            name = "handler.qt_interactor"
+            self.handler.qt_interactor.deleteLater()
+        except Exception as e: 
+            if disp: print(f"could not remove {name}: {e}")
+
+        try: 
+            name = "handler (widget)"
+            self.handler.deleteLater()
+        except Exception as e: 
+            if disp: print(f"could not remove {name}: {e}")
+
+        try: 
+            name = "handler"
+            self.handler
+        except Exception as e: 
+            if disp: print(f"could not remove {name}: {e}")
+
+        try: 
+            name = "tracktab (widget)"
+            self.tracktab.deleteLater()
+        except Exception as e: 
+            if disp: print(f"could not remove {name}: {e}")
+
+        try: 
+            name = "tracktab"
+            del self.tracktab
+        except Exception as e: 
+            if disp: print(f"could not remove {name}: {e}")
+
+    def load_state(self, filename=None): 
+        """ """
+
+        self.handler = safas.handler.Handler() 
         self.viewer = safas.qtviewer.Viewer(parent=self, layout=self.layout_video)
         self.viewer.frame_idx_change.connect(self.build_frame) 
 
@@ -64,15 +187,13 @@ class MainWindow(QtWidgets.QMainWindow):
         self.params.p.param("linker","common","name").sigValueChanged.connect(functools.partial(self.handler.load_node, "linker"))
         self.params.p.param("writer","common","name").sigValueChanged.connect(functools.partial(self.handler.load_node, node_name="linker"))
 
-        # self.params.p.param("screencap","common","get_cap").sigActivated.connect(self.get_screencap)
-        # avoid passing all ui params to TrackTab - connect out here
         self.tracktab = TrackTab(parent=self, 
-                                 button_remove_track=self.button_remove_track,
-                                 button_remove_all_tracks=self.button_remove_all_tracks,
-                                 button_add_object=self.button_add_object,
-                                 button_add_all_objects=self.button_add_all_objects,
-                                 list_tracks=self.list_tracks,
-                                 list_objects=self.list_objects
+                                button_remove_track=self.button_remove_track,
+                                button_remove_all_tracks=self.button_remove_all_tracks,
+                                button_add_object=self.button_add_object,
+                                button_add_all_objects=self.button_add_all_objects,
+                                list_tracks=self.list_tracks,
+                                list_objects=self.list_objects
                                 )
         self.tracktab.ui_add_objs_signal.connect(self.viewer.add_objs)
         self.tracktab.ui_add_tracks_signal.connect(self.viewer.add_tracks)
@@ -87,9 +208,11 @@ class MainWindow(QtWidgets.QMainWindow):
         
         self.setup_control_buttons()
         self.button_compile.clicked.connect(self.handler.compile_outputs)
+        
         self.radio_process.clicked.connect(self.activate_radio)
+        
         # startup macro
-        self.handler.load_params()
+        self.handler.load_params(filename=filename)
         self.handler.load_node("labeler")
         self.handler.load_node("linker")
         self.handler.load_node("writer")
@@ -102,7 +225,8 @@ class MainWindow(QtWidgets.QMainWindow):
         return super(MainWindow, self).eventFilter(obj, event)
 
     def activate_radio(self, v): 
-        [self.params.p.param(key,"common","process").setValue(v) for key in ["labeler","linker"]]
+        self.params.p.param("labeler","common","process").setValue(v) # for key in ["labeler","linker"]]
+        self.params.p.param("linker","common","process").setValue(v) # for key in ["labeler","linker"]]
   
     @QtCore.Slot(int)
     def build_frame(self, frame_idx):
@@ -128,6 +252,10 @@ class MainWindow(QtWidgets.QMainWindow):
             icon = QtGui.QIcon(str(Path(self.resource_path).joinpath(ic)))
             button = getattr(self, b)
             button.setIcon(icon)
+            try: # ensure not already connected
+                button.clicked.disconnect(getattr(self, b.split("button_")[-1]))
+            except Exception as e:
+                None #print(f"{b} button not disconnected: {e}") 
             button.clicked.connect(getattr(self, b.split("button_")[-1]))
 
     def step_back(self):
@@ -138,6 +266,7 @@ class MainWindow(QtWidgets.QMainWindow):
     
     def step_forward(self): self.viewer.inc_video_index(1)
     def reprocess(self): self.handler.relabel_frame()
+    
     def save(self): self.handler.save_tracks()
 
 class TrackTab(QtCore.QObject): 
@@ -279,6 +408,7 @@ class TrackTab(QtCore.QObject):
 if __name__ == "__main__": 
     # entry point
     app = QtWidgets.QApplication(sys.argv)
+    app.setWindowIcon(QtGui.QIcon('ui/s.ico'))
     window = MainWindow() 
     window.show()
     app.exec_()

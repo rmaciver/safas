@@ -18,6 +18,7 @@ Identify objects that have a "crisp" outline (i.e. above a threshold in the grad
 
 import numpy as np
 import cv2
+import warnings
 
 params = {
     "name": "kwargs", 
@@ -73,6 +74,7 @@ def labeler(src,
     if src.ndim == 3: src = cv2.cvtColor(src, cv2.COLOR_BGR2GRAY)
 
     src = cv2.GaussianBlur(src, (3, 3), 0)
+    
     if thresh_inv: # thresh_inv = True is brightfield, ie the objects are darker than the field
         ret, thresh = cv2.threshold(src, thresh_val, 255, cv2.THRESH_BINARY_INV)
     else: 
@@ -88,6 +90,10 @@ def labeler(src,
     if clear_edge_filter: 
         obj_idxs_fill = objs_on_edge(labels)
         labels = fill_coords(labels, coords, obj_idxs_fill)
+        obj_idxs = np.setdiff1d(obj_idxs, obj_idxs_fill)
+
+    # diffs = compare_idxs_lbls(labels, obj_idxs, disp=False)
+    # if len(diffs) > 0: print(f"CLEAR EDGE OUTPUT obj_idxs diffs: {diffs}", warning=True)
 
     if apply_grad_filter: 
         grad = cal_grad_img(src, grad_thresh_val=grad_thresh_val)
@@ -96,11 +102,17 @@ def labeler(src,
         obj_idxs_fill = np.setdiff1d(np.unique(labels), obj_idxs)
         labels = fill_coords(labels, coords, obj_idxs_fill)
 
+    # diffs = compare_idxs_lbls(labels, obj_idxs, disp=False)
+    # if len(diffs) > 0: print(f"GRAD FILTER obj_idxs diffs: {diffs}", warning=True)
+  
     if apply_min_px_filter: 
         obj_idxs_fill = np.intersect1d(np.argwhere(area < area_min_px).ravel(), obj_idxs)
         labels = fill_coords(labels, coords, obj_idxs_fill)
         obj_idxs = np.setdiff1d(obj_idxs, obj_idxs_fill)
 
+    # diffs = compare_idxs_lbls(labels, obj_idxs, disp=False)
+    # if len(diffs) > 0: print(f"MIN PX FILTER obj_idxs diffs: {obj_idxs}", warning=True)
+ 
     objs = format_output_objects(obj_idxs=obj_idxs, 
                                 bbox=bbox, 
                                 area=area, 
@@ -141,6 +153,16 @@ def fill_coords(labels, coords, obj_idxs):
         labels[pts[:,0], [pts[:,1]]] = 0
     return labels
 
+def compare_idxs_lbls(labels, obj_idxs, disp=False): 
+    # compare obj_idxs and labels
+    idxs_labels = np.unique(labels)
+    diffs = np.setdiff1d(obj_idxs, idxs_labels)
+    if disp: 
+        print(f"labels contains: {idxs_labels}")
+        print(f"bj_idxs contains: {obj_idxs}")
+        print(f"diffs are: {diffs}")
+    return diffs
+
 def labels_to_coords(x): 
     """  
     Return list that contains indices of each  unique values in x
@@ -173,9 +195,14 @@ def format_output_objects(obj_idxs,
     objs = dict()
     
     obj_idx_l = 1
+
+    diffs = compare_idxs_lbls(labels, obj_idxs, disp=False)
+    if len(diffs) > 0: print(f"FORMAT OBJS obj_idxs diffs: {obj_idxs}", warning=True)
+ 
     for ix, obj_idx in enumerate(obj_idxs): 
         if obj_idx == 0: continue # exclude 0 object (background)
         mask = (labels == obj_idx).astype("uint8")*255
+        if mask.sum() == 0: continue
         contours_i, hierarchy = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
         contours_coor = contours_i[0].reshape(-1, 2)
 

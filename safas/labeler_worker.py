@@ -39,8 +39,7 @@ def _producer(q_in, cap, x1, x2):
         result, image = cap.read()
         q_in.put((image, frame_idx))
     q_in.put((None, None))
-    print(f"Labeler producer finished")
-
+ 
 def _consumer(q_in, q_out, labeler_func, labeler_kwargs):    
     """
     """

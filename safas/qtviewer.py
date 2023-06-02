@@ -99,6 +99,7 @@ class PhotoViewer(QtWidgets.QGraphicsView):
             self.photoClicked.emit(self.mapToScene(event.pos()).toPoint())
         super(PhotoViewer, self).mousePressEvent(event)
 
+#class Viewer(PhotoViewer): 
 class Viewer(PhotoViewer): 
     status_update_signal = QtCore.Signal(str)
     frame_idx_change = QtCore.Signal(int)
@@ -106,21 +107,22 @@ class Viewer(PhotoViewer):
     add_object_signal = QtCore.Signal(object, int)
     track_objects_signal = QtCore.Signal(bool)
 
-    def __init__(self, parent=None, layout=None):
-        super(Viewer, self).__init__(parent)
-        self.viewer = PhotoViewer(self, layout=layout) # Not sure why subclassing & adding as attribute
+    def __init__(self, parent=None, layout=None, *args, **kwargs):
+        super(Viewer, self).__init__(parent=parent, layout=layout, *args, **kwargs)
+        #super(Viewer, self).__init__()
+        #self.viewer = PhotoViewer(parent=parent, layout=layout) # Not sure why subclassing & adding as attribute
 
         if parent is not None: 
             self.parent = parent # access to safas.handler.Handler
 
-
-        fr = QtWidgets.QFrame()
+        self.fr = QtWidgets.QFrame()
     
-        if layout is not None: layout.addWidget(fr)
+        if layout is not None: 
+            layout.addWidget(self.fr)
 
         qh = QtWidgets.QHBoxLayout()
         if layout is not None: 
-            fr.setLayout(qh)
+            self.fr.setLayout(qh)
         else: 
             self.addLayout(1,2)
         
@@ -140,7 +142,8 @@ class Viewer(PhotoViewer):
         try: 
             fname = Path(parent.resource_path).joinpath("ui/tracking_plus_words.png")
             image = cv2.imread(str(fname))
-            self.viewer.set_zoom(10)
+            #self.viewer.set_zoom(10)
+            self.set_zoom(10)
             time.sleep(0.1)
             self.update_frame({"raw_image": image, "frame_idx": 0, "objs_an": None, "tracks_an": None})    
         except Exception as e: 
@@ -176,7 +179,8 @@ class Viewer(PhotoViewer):
         """         
         """
         self.frame_idx = fr["frame_idx"]
-        self.viewer.setPhoto(fr["raw_image"])
+        #self.viewer.setPhoto(fr["raw_image"])
+        self.setPhoto(fr["raw_image"])
 
         track_idxs, obj_idxs = self.parent.handler.get_items_in_frame(self.frame_idx)
         self.init_annotations() # always clear on new frame
@@ -214,7 +218,8 @@ class Viewer(PhotoViewer):
                 
                 for i in item: 
                     try: 
-                        self.viewer._scene.removeItem(i)
+                        #self.viewer._scene.removeItem(i)
+                        self._scene.removeItem(i)
                     except Exception as e: 
                         if disp: print(f"An. idx {idx} type {key} item {i}: {e}", debug=True)
         
@@ -260,7 +265,8 @@ class Viewer(PhotoViewer):
         for obj_idx in obj_idxs:  
             if obj_idx in self.annotations["objs"]: 
                 item = self.annotations["objs"][obj_idx]
-                self.viewer._scene.removeItem(item["contour_item"])
+                #self.viewer._scene.removeItem(item["contour_item"])
+                self._scene.removeItem(item["contour_item"])
                 self.annotations["objs"].pop(obj_idx)
 
     # # NOTE: add_contour is common to add_objs and add_tracks - ie patches and tracks are just contours   
@@ -282,9 +288,11 @@ class Viewer(PhotoViewer):
             
         if filled: 
             myBrush = QtGui.QBrush(QtGui.QColor.fromRgb(*contour_color), Qt.SolidPattern)
-            return self.viewer._scene.addPath(path, pen=myPen, brush=myBrush)
+            #return self.viewer._scene.addPath(path, pen=myPen, brush=myBrush)
+            return self._scene.addPath(path, pen=myPen, brush=myBrush)
         else: 
-            return self.viewer._scene.addPath(path, pen=myPen)
+            #return self.viewer._scene.addPath(path, pen=myPen)
+            return self._scene.addPath(path, pen=myPen)
 
     @QtCore.Slot(int, int, bool)
     def add_tracks(self, frame_idx, track_idxs, setHighlight=False, **kwargs): 
@@ -330,13 +338,15 @@ class Viewer(PhotoViewer):
             if track_idx in self.annotations["tracks"]: # remove prev. QT item
                 item = self.annotations["tracks"][track_idx]
                 try: 
-                    self.viewer._scene.removeItem(item["line_item"])
+                   # self.viewer._scene.removeItem(item["line_item"])
+                   self._scene.removeItem(item["line_item"])
                 except Exception as e: 
                     print(f"{item['line_item']} not removed: {e}")
                 
                 for gpi in item['contour_item']: 
                     try: 
-                        self.viewer._scene.removeItem(gpi)
+                        #self.viewer._scene.removeItem(gpi)
+                        self._scene.removeItem(gpi)
                     except Exception as e: 
                         print(f"gpi not removed: {e}")
                 

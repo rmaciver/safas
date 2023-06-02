@@ -12,7 +12,7 @@ import time
 import functools
 from copy import deepcopy
 from threading import Thread
-
+import multiprocessing
 import queue
 import os
 from datetime import datetime
@@ -151,6 +151,10 @@ class Handler(QtCore.QObject):
         # NOTE: update this way if SyncedDict is used to avoid changing type
         for key in user_params: 
             self.params[key] = user_params[key]
+
+        # data is cleared
+        self.clear_all_tracks()
+        self.clear_all_objs()
 
     def _load_p(self, filename): 
         try: 
@@ -334,6 +338,10 @@ class Handler(QtCore.QObject):
             x1, x2 = image_index, image_index + 1
             n_threads = 1
         
+        
+
+        n_threads = multiprocessing.cpu_count() - 1
+
         print(f"[cyan]Labeler[/cyan] [dark_green]{self.labeler.name}[/dark_green] on {x2-x1} images from {x1} to {x2-1} with {n_threads} threads")
         start = time.perf_counter()
 
@@ -454,8 +462,7 @@ class Handler(QtCore.QObject):
         if USE_QT: self.qt_interactor.blockSignals(True) 
         self.params.update(flatten_dict.flatten(new_params))
         self.config["output_path"] = self.params[("io", "output_path")]
-        if USE_QT: 
-            self.qt_interactor.blockSignals(False) 
+        if USE_QT: self.qt_interactor.blockSignals(False) 
         
     def set_frame_idx(self, v): 
         """ """
@@ -670,7 +677,7 @@ class Handler(QtCore.QObject):
         os.makedirs(output_path, exist_ok=True)
         print(f"Output_path not set, checking {output_path} for summary .csv files")
         files = list(Path(output_path).rglob("*summary*.csv"))
-        print(f"{len(files)} found in {output_path}")
+        print(f"{len(files)} file(s) found in {output_path}")
 
         if len(files) > 1: 
             df = pd.concat(pd.read_csv(file) for file in files)

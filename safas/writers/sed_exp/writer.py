@@ -122,8 +122,8 @@ def writer(output_path, tracks, objs, cap,
             # ferret_x, ferret_y = np.where(mask>0)
 
             item = {
-                "track_idx": track_idx,
                 "frame_idx": frame_idx,
+                "track_idx": track_idx,
                 "obj_idx": obj_idx,
                 "x_pos": cent[0], 
                 "y_pos": cent[1], 

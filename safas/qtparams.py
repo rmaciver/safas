@@ -26,7 +26,7 @@ from .prints import print_params as print
 PARAMS = [
 {'name': 'io', "title": "I/O", 'type': 'group', 
 'children': [
-    {"name": "params_file", "type": "file", "fileMode": "ExistingFile", "psync": False,"value": "params.json"},
+    {"name": "params_file", "type": "str", "value": "params.json"},
     {'name': 'input_path', "title": "Input path", "type": "file", "fileMode": "Directory","value": None, "directory": None},
     {'name': 'output_path', "title": "Output path", "type": "file", "fileMode": "Directory","value": None},
     {"name": "data_file", "title": "Input file", "type": "file", "fileMode": "ExistingFile", "directory": None,"psync": False,"value": None},
@@ -108,18 +108,22 @@ class ParamsView(QWidget):
     params_update_signal = QtCore.Signal(dict, name="params_update_signal")
     data_file_signal = QtCore.Signal(dict, name="data_file_signal")
 
-    def __init__(self, parent=None, context=None, layout=None, params=None, ui=True, *args, **kwargs):
+    def __init__(self, 
+                 parent=None, 
+                 layout=None, 
+                 params=None, 
+                 ui=True, *args, **kwargs):
         super(ParamsView, self).__init__(*args, **kwargs)
         self.parent = parent
         self.params_setup(layout=layout, params=params, ui=ui)
      
     def params_setup(self, layout=None, params=None, ui=True): 
         """ populate the ui from parameters file """
-        if params is None: 
-            params = deepcopy(PARAMS) # use default if None passed 
+        if params is None: params = deepcopy(PARAMS) # use default if None passed 
         self.p = Parameter.create(name='params', type='group', children=params)
         self.p.sigTreeStateChanged.connect(self.sync_to_ext) # sync external copies
         self.p.param("io","data_file").sigValueChanged.connect(self.data_file_changed)
+        
         if ui: 
             # link pair of params
             self.pro_n = self.p.param('io','process_n_frames')
@@ -128,13 +132,31 @@ class ParamsView(QWidget):
             self.pro_new = self.p.param('io','process_on_new_frame')
             self.pro_new.sigValueChanged.connect(self.pro_new_Changed)
 
-            t = ParameterTree(parent=self)
-            t.setParameters(self.p, showTop=False)
+            # link processing on/off
+            self.pro_label = self.p.param('labeler','common', 'process')
+            self.pro_link = self.p.param('linker','common', 'process')
+            
+            self.pro_label.sigValueChanged.connect(self.pro_label_Changed)
+            self.pro_link.sigValueChanged.connect(self.pro_link_Changed)
+
+            self.t = ParameterTree(parent=self)
+            self.t.setParameters(self.p, showTop=False)
         
             if layout is None: # make layout if not embedded in parent
                 layout = QVBoxLayout()
                 self.setLayout(layout)
-            layout.addWidget(t)
+            layout.addWidget(self.t)
+    
+    # next two are linked
+    def pro_label_Changed(self):
+        v = self.pro_label.value()
+        self.pro_link.setValue(v, blockSignal=self.pro_link_Changed)
+        self.parent.radio_process.setChecked(v)
+
+    def pro_link_Changed(self):
+        v = self.pro_link.value()
+        self.pro_label.setValue(v, blockSignal=self.pro_label_Changed)
+        self.parent.radio_process.setChecked(v)
 
     # next two are linked
     def pro_n_Changed(self):

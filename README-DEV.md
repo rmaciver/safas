@@ -1,5 +1,4 @@
 # TODO
-
 * clear tracks issue in exe: deleting manually does not remove, new flocs added manually added to "non-existent" tracks
 * fix process toggle on control panel - link to params correctly 
 * save cropped ROI's in writer: need to reload image each time, so do this out of the track analysis loop
@@ -11,6 +10,8 @@
 * make compile function clearer
 * update docs
 * add link to docs somewhere in safas: help icon
+* change safas v0.3 in main window
+* add icon for Safas in toolbar and exe
 
 # activate venv
 venv\Scripts\activate
