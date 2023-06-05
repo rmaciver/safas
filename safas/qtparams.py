@@ -33,7 +33,7 @@ PARAMS = [
     {"name": "process_on_new_frame", "type": "bool", "value": True},
     {"name": "process_n_frames", "type": "bool", "value": False},
     {"name": "n_frames", "type": "int", "value": 50},
-    {"name": "n_threads", "type": "int", "value": 6},
+    {"name": "n_threads", "type": "int", "value": 6, "visible": False},
 ]
 },
 {"name": "labeler", "title": "Labeler", "type": "group",
@@ -52,7 +52,7 @@ PARAMS = [
         [{"name": "params_file", "type": "file", "fileMode": "ExistingFile", "psync": False,"value": None, "visible": False},
         {"name": "name", "type": "list", "value": "linear", "values": ["linear_flocs"]},
         {"name": "process", "type": "bool", "value": True},
-        {"name": "obj-select-mode", "type": "list", "value": "auto", "values": ["auto", "none"]}
+        {"name": "obj-select-mode", "type": "list", "value": "auto", "values": ["auto", "manual"]}
         ]
     },
 ]
@@ -88,18 +88,15 @@ PARAMS = [
     ]}
 ]
 },
-# {"name": "screencap", "title": "ScreenCap", "type": "group",
-#  "children": [
-#     {"name": "common", "title": "Common", "type": "group", "children": 
-#         [{"name": "x1", "type": "int", "value": None},
-#          {"name": "x2", "type": "int", "value": None},
-#          {"name": "get_cap", "title": "Record", "type": "action"},
-#          {"name": "filename", "type": "file", "fileMode": "ExistingFile", "psync": False,"value": None},
-
-#         ]
-#     },
-# ]
-# },
+{'name': 'merge', "title": "Merge", 'type': 'group', 
+'children': 
+     [{'name': 'merge_summary_files', 'type': 'bool', 'value': True},
+      {'name': 'merge_full_output_files', 'type': 'bool', 'value': True},
+      {'name': 'merge_obj_images', 'type': 'bool', 'value': True},
+      {'name': 'merge_frames', 'type': 'bool', 'value': True},
+    ]
+},
+    
 ]     
 
 # TODO: populate linker and labler drop-down options with plugins available
@@ -150,23 +147,18 @@ class ParamsView(QWidget):
     # next two are linked
     def pro_label_Changed(self):
         v = self.pro_label.value()
-        self.pro_link.setValue(v, blockSignal=self.pro_link_Changed)
         self.parent.radio_process.setChecked(v)
 
     def pro_link_Changed(self):
         v = self.pro_link.value()
-        self.pro_label.setValue(v, blockSignal=self.pro_label_Changed)
         self.parent.radio_process.setChecked(v)
 
     # next two are linked
-    def pro_n_Changed(self):
-        self.pro_new.setValue(not self.pro_n.value(), blockSignal=self.pro_new_Changed)
+    def pro_n_Changed(self): self.pro_new.setValue(not self.pro_n.value(), blockSignal=self.pro_new_Changed)
 
-    def pro_new_Changed(self):
-        self.pro_n.setValue(not self.pro_new.value(), blockSignal=self.pro_n_Changed)
+    def pro_new_Changed(self): self.pro_n.setValue(not self.pro_new.value(), blockSignal=self.pro_n_Changed)
 
-    def data_file_changed(self): 
-        self.data_file_signal.emit(self.p.param("io","data_file").value())
+    def data_file_changed(self): self.data_file_signal.emit(self.p.param("io","data_file").value())
 
     def params_from_file(self, from_config=False, **kwargs): 
         """ """   

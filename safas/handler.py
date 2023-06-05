@@ -5,15 +5,11 @@ Prepare an image analysis pipline to label and
     link objects in a series of images
 """
 import json
-import sys
 from pathlib import Path
-
+import shutil
 import time
-import functools
 from copy import deepcopy
-from threading import Thread
 import multiprocessing
-import queue
 import os
 from datetime import datetime
 import pickle
@@ -58,6 +54,7 @@ class QtInteractor(QtCore.QObject):
     update_lists_signal = QtCore.Signal(int) # signal is frame_idx
     ui_params_update_signal = QtCore.Signal(dict)
     ui_params_child_signal = QtCore.Signal(str, dict)
+    ui_video_loaded_signal = QtCore.Signal(bool)
 
     def update_qt_node_params(self, node_name, key, params_list): 
         try: 
@@ -107,33 +104,43 @@ class Handler(QtCore.QObject):
         try: 
             config_file ="config/config.json"
             self.config = load_json(config_file) # config always stored here...
+            print(f"Config loaded from {config_file}")
         except Exception as e: 
             print(f"Config not loaded from file {e}", warn=True)
             
         if self.config is None: 
             with open(config_file, "w") as f: json.dump(DEFAULT_CONFIG, f)
             self.config = DEFAULT_CONFIG
-
-        print(f"[cyan]Params & Config [/cyan] loaded")
+            print(f"Default config loaded")
 
     def load_params(self, filename=None, display_params=False): 
         """ """
-        # try loading params from various locations
-        user_params = None
-        if (filename is not None) & (filename != ""): user_params = self._load_p(filename)
-
+        user_params = None # try loading params from various locations
+        loc = None
+        
+        if (filename is not None) & (filename != ""): 
+            user_params = self._load_p(filename)
+            loc = "user"
+   
         if (user_params is None) & (self.config["output_path"] is not None):
             filename = str(Path(self.config["output_path"]).joinpath("_last_params.json"))
             user_params = self._load_p(filename)
+            loc = self.config["output_path"]
+       
         if user_params is None: 
             user_params = self._load_p("config/_last_params.json")
+            loc = "config/_last_params.json"
+
         if user_params is None: 
             user_params = self._load_p("config/params.json")
+            loc = "config/params.json"
+        
         if user_params is None: 
             print(f"Params not loaded from locations available. Please select another params.json file", warning=True)
             return None
 
-        # NOTE: remove labeler, linker, writer kwargs until UI setup from module. store as class attribute temporarily
+        print(f"Loaded params from {loc}")
+        # NOTE: store labeler, linker, writer kwargs as class attribute until UI setup
         for node_name in ["labeler", "linker", "writer"]: 
             try: 
                 setattr(self, f"{node_name}_kwargs", user_params[node_name]["kwargs"])
@@ -141,21 +148,19 @@ class Handler(QtCore.QObject):
             except Exception as e: 
                 print(f"{node_name} had no kwargs {e}")
 
-        # NOTE: params used as a flattened dictionary, with tuple keys, in most places in Handler and QT
+        # NOTE: params as flattened dictionary with tuple keys in most places 
         try: 
             user_params = flatten_dict.flatten(user_params)
         except Exception as e: 
             print(f"Could not flatten params dict: {e}")
             return None
         
-        # NOTE: update this way if SyncedDict is used to avoid changing type
-        for key in user_params: 
-            self.params[key] = user_params[key]
+        # NOTE: avoid changing SyncedDict type this way
+        for key in user_params: self.params[key] = user_params[key] 
 
-        # data is cleared
-        self.clear_all_tracks()
+        self.clear_all_tracks() 
         self.clear_all_objs()
-
+        
     def _load_p(self, filename): 
         try: 
             user_params = load_json(filename)
@@ -175,15 +180,19 @@ class Handler(QtCore.QObject):
             except KeyError as e: 
                 if len(self.params) == 0: 
                     print(f"Params not loaded")
+                    self.qt_interactor.ui_video_loaded_signal.emit(False)
                     return None
                 else: 
                     print(f"Verify key data_file is in params")
                     self.params[("io", "data_file",)] = "<source filename>"
+                    self.qt_interactor.ui_video_loaded_signal.emit(False)
                     return None
             except Exception as e: 
+                self.qt_interactor.ui_video_loaded_signal.emit(False)
                 print(f"Error: {e}")
 
         if (data_file is None) | (data_file == "") | (data_file == 0): 
+            self.qt_interactor.ui_video_loaded_signal.emit(False)
             print(f"[cyan]Source[/cyan] No data file selected")
             return None
         
@@ -192,6 +201,7 @@ class Handler(QtCore.QObject):
 
         if kind is None:
             print(f'[cyan]Source[/cyan] cannot determine file type of {data_file}')
+            self.qt_interactor.ui_video_loaded_signal.emit(False)
             return None
         else: 
             print(f'[cyan]Source[/cyan] file extension: {kind.extension}, MIME type: {kind.mime}')
@@ -201,12 +211,13 @@ class Handler(QtCore.QObject):
                 if USE_QT: 
                     try: 
                         self.qt_interactor.frame_count_signal.emit(0, frame_count)
+                        self.qt_interactor.ui_video_loaded_signal.emit(True)
                     except Exception as e: 
                         print(f"Frame count not emitted by qt_interactor: {e}")
-
                 self.build_frame(0) # default beginning of file
             else: 
                 print(f"Supported MIME types: {supported} ")
+                self.qt_interactor.ui_video_loaded_signal.emit(False)
 
     def load_node(self, node_name, *args, **kwargs): 
         """ Load function and parameters for LABELER or LINKER"""
@@ -233,7 +244,6 @@ class Handler(QtCore.QObject):
             print(f"{node_name} node not loaded: {e}")
             return None
         
-        # TODO: node cleanup before replacing? 
         setattr(self, node_name, Node()) # NOTE: option for custom Node setup
 
         try: 
@@ -244,25 +254,24 @@ class Handler(QtCore.QObject):
         except Exception as e: 
             print(f"Labeler {func_name} not registered: {e}", error=True)
 
-        if USE_QT: 
-            self.qt_interactor.update_qt_node_params(node_name, "kwargs", params_list) # automatically updates shared params
-    
-        # reload node kwargs from state if available
-        try: 
+        # automatically updates shared params
+        if USE_QT: self.qt_interactor.update_qt_node_params(node_name, "kwargs", params_list) 
+        
+        try: # reload node kwargs from state if available
             node_kwargs = getattr(self, f"{node_name}_kwargs") # these are in dict format
         except Exception as e: 
             print(f"{node_name} kwargs not recovered from state, module defaults will be used")
             node_kwargs = dict()
             for item in params_list["children"]: 
                 node_kwargs[item["name"]] = item["value"] 
-        # remove the existing node_kwargs
-        to_remove = []
+        
+        to_remove = [] # remove the existing node_kwargs
         for key in self.params: 
             if len(set((node_name, "kwargs")).difference(set(key))) == 0: 
                 to_remove.append(key)
         [self.params.pop(key) for key in to_remove]
-        # update node_kwargs on shared params now
-        for key in node_kwargs: 
+       
+        for key in node_kwargs:  # update node_kwargs on shared params now
             self.params[(node_name, "kwargs", key)] = node_kwargs[key]
 
     def load_node_module(self, func_name, node_type): 
@@ -285,10 +294,7 @@ class Handler(QtCore.QObject):
         errors = dict()
         
         try: 
-            #mod_name = f"{func_name}.{node_type}"
-            mod = globals()[f"{node_type}_modules"][func_name] # fragile but convenient to make this pattern
-            
-            #mod = getattr(node_modules, node_type)
+            mod = globals()[f"{node_type}_modules"][func_name] 
         except Exception as e: 
             mod = None
             errors["module"] = e
@@ -329,19 +335,15 @@ class Handler(QtCore.QObject):
         except Exception as e: 
             print(f"Could not get video cap from state: {e}.", error=True)
             return None
-
+        
         if process_n_frames:  
             x1, x2 = image_index, image_index + self.params[("io", "n_frames")] 
             x2 = min(x2, int(self.cap.get(cv2.CAP_PROP_FRAME_COUNT)))
-            n_threads = self.params[("io","n_threads")]    
+            n_threads = multiprocessing.cpu_count() - 1 
         elif process_on_new_frame: 
-            x1, x2 = image_index, image_index + 1
+            x1, x2 = image_index, image_index
             n_threads = 1
         
-        
-
-        n_threads = multiprocessing.cpu_count() - 1
-
         print(f"[cyan]Labeler[/cyan] [dark_green]{self.labeler.name}[/dark_green] on {x2-x1} images from {x1} to {x2-1} with {n_threads} threads")
         start = time.perf_counter()
 
@@ -351,10 +353,8 @@ class Handler(QtCore.QObject):
             print(f"labeler kwargs not loaded from params: {e}")
         
         # TODO: run in thread and release UI
-        
         objs = labeler_worker.run_labeler(self.cap, x1, x2, n_threads, self.labeler.func, labeler_kwargs)
         self.objs.update(objs)
-
         finish = time.perf_counter()
       
         if display_table:  
@@ -363,19 +363,18 @@ class Handler(QtCore.QObject):
             table.add_column("N Objects", style="magenta")
             
             disp_results = [] 
-            [disp_results.append((str(frame_idx), str(len(self.objs[frame_idx])))) for frame_idx in range(x1, x2)]
+            [disp_results.append((str(frame_idx), str(len(self.objs[frame_idx])))) for frame_idx in range(x1, x2+1)]
             
             max_results = 10
             if len(disp_results) > max_results*2: 
                 disp_results = disp_results[:max_results] + [("...", "...")] + disp_results[-max_results:]
     
             [table.add_row(item[0], item[1]) for item in disp_results]
-            
             console = rich.console.Console()
             console.print(table)
 
         print(f"Processed {x2-x1} images in {finish-start:0.1f} second(s)") 
-        return x2 - 1
+        return x2
 
     def run_linker(self,
             frame_idx=None, 
@@ -478,15 +477,16 @@ class Handler(QtCore.QObject):
             print(f"[cyan]Source[/cyan] not loaded", warning=True)   
             return None
 
-        process_on_new_frame = self.params[("io", "process_on_new_frame")]
+        process_on_new_frame = self.params[("io","process_on_new_frame")]
         process_n_frames = self.params[("io", "process_n_frames")]
-        
+
         if process_on_new_frame & process_n_frames: 
             raise ValueError("Only one of process_on_new_frame or process_n_frames can be true")    
-                
+
         if self.params[('labeler','common','process')] & (self.labeler is not None): 
             try: 
                 if self.params[("labeler", "common","process")]: 
+                    print(f"labelling: {frame_idx}")
                     vi = self.run_labeler(image_index=frame_idx, 
                                     process_on_new_frame=process_on_new_frame, 
                                     process_n_frames=process_n_frames, 
@@ -547,6 +547,8 @@ class Handler(QtCore.QObject):
 
     def build_tracks_an(self, frame_idx, track_idxs=None):
         """ """ 
+        # NOTE: want tracks upt to previous frame
+        frame_idx += 1
         params_t = deepcopy(flatten_dict.unflatten(self.params)["display"])
         tracks_an = {"tracks": dict(), "kwargs": params_t["tracks"]} 
         
@@ -597,7 +599,10 @@ class Handler(QtCore.QObject):
         return objs_an
     
     def save_tracks(self): 
-        """ """
+        if self.cap is None: 
+            print(f"[cyan]Source[/cyan] not loaded", warning=True)   
+            return None
+        
         try:  
             writer_kwargs = flatten_dict.unflatten(self.params)["writer"]["kwargs"]
         except Exception as e: 
@@ -615,36 +620,45 @@ class Handler(QtCore.QObject):
         clear_tracks = writer_kwargs["clear_tracks_on_save"]
         
         if writer_kwargs["clear_tracks_on_save"]: 
-            self.rebuild_frame(frame_idx=None, func=self.clear_all_tracks())
+            self.rebuild_frame(frame_idx=None, func=self.clear_all_tracks)
 
         if writer_kwargs["clear_objs_on_save"]:
-            self.rebuild_frame(frame_idx=None, func=self.clear_all_objs()) 
+            self.rebuild_frame(frame_idx=None, func=self.clear_all_objs) 
 
     def rebuild_frame(self, frame_idx=None, func=None, setLabelerOn=False, setLinkerOn=False): 
+        if self.cap is None: 
+            print(f"[cyan]Source[/cyan] not loaded", warning=True)   
+            return None
+
         # basically allows annotations to be recreated without reprocessing
         la_rev = deepcopy(self.params[('labeler','common','process')]) 
         self.params[('labeler','common','process')] = setLabelerOn
-        
         li_rev = deepcopy(self.params[('linker','common','process')])
         self.params[('linker','common','process')] = setLinkerOn
         
         nf_rev = deepcopy(self.params[("io","n_frames")])
+        pf_rev = deepcopy(self.params[("io","process_on_new_frame")])
+
+        self.params[("io","process_on_new_frame")] = True # should toggle the other to False
+        self.params[("io","process_n_frames")] = False # should toggle the other to False
         self.params[("io","n_frames")] = 1 # if set to 1 + only rebuild one frame
+        
         # run a function while processing is paused
-        if func is not None: func() 
-        # rebuild this frame
-        if frame_idx is None: 
-            frame_idx = self.latest_frame["frame_idx"]
+        if func is not None: func() # TODO: permit passing args and kwargs
+   
+        if frame_idx is None: frame_idx = self.latest_frame["frame_idx"]
         self.build_frame(frame_idx)
         
-        # revert processing values
-        self.params[('labeler','common','process')] = la_rev
+        self.params[('labeler','common','process')] = la_rev # revert processing values
         self.params[('linker','common','process')] = li_rev
         self.params[("io","n_frames")] = nf_rev
+        self.params[("io","process_on_new_frame")] = pf_rev
+        self.params[("io","process_n_frames")] = not pf_rev
 
     def dump_labeled_frames(self, write_frames=True, **kwargs): 
         """ write all data to file"""
-        write_frames = True # NOTE: (!) not working as a kwarg for some odd reason 
+        # NOTE: was helpful during development
+        write_frames = True # NOTE: (!) not working as a kwarg for some reason 
         if len(self.objs) == 0: 
             print(f"No data to write")
             return None
@@ -670,50 +684,97 @@ class Handler(QtCore.QObject):
                     cv2.imwrite(str(output_path.joinpath(f"{frame_idx:05d}.png")), frame)
         print(f"Objects and frames saved to: {output_path}")
 
-    def compile_outputs(self): 
+    def compile_outputs(self, paths=None): 
         """ write all data to file"""
+        lines = []
+        # TODO: Move to writer module. merge is dependent on writer-specific formatting 
         output_path = self.params[("io", "output_path")]
-        if (output_path is None) | (output_path == ""): output_path = "output" #default in module
+        if (output_path is None) | (output_path == ""): output_path = "output" 
         os.makedirs(output_path, exist_ok=True)
-        print(f"Output_path not set, checking {output_path} for summary .csv files")
-        files = list(Path(output_path).rglob("*summary*.csv"))
-        print(f"{len(files)} file(s) found in {output_path}")
+        output_path = Path(output_path).joinpath(f"{microtime()}-merged")
+        os.makedirs(output_path, exist_ok=True)
+        print(f"Compiling outputs")
 
-        if len(files) > 1: 
-            df = pd.concat(pd.read_csv(file) for file in files)
-        elif len(files) == 1: 
-            df = pd.read_csv(files[0])
-        elif len(files) == 0:     
-            return None
-        
-        filename = f"{output_path}/compiled_data.csv"
-        df.to_csv(filename)
-        print(f"{len(df)} rows saved to {filename}")
+        if self.params[("merge","merge_summary_files")]: 
+            files = []
+            for path in paths: 
+                try: 
+                    files.append(str(Path(path).joinpath("summary_output.csv")))
+                except Exception as e: 
+                    print(f"Summary file not located in {path}: {e}")
+    
+            if len(files) > 1: 
+                df = pd.concat(pd.read_csv(file) for file in files)
+            elif len(files) == 1: 
+                df = pd.read_csv(files[0])
+            elif len(files) == 0:     
+                return None
+            
+            filename = f"{output_path}/summary_output_merged.csv"
+            df.to_csv(filename)
+
+            print(f"summary output: {len(df)} rows from {len(files)} files saved to {Path(filename).name}")
+
+        if self.params[("merge","merge_full_output_files")]: 
+            files = []
+            for path in paths: 
+                try: 
+                    files.append(list(Path(path).glob("*full_output.csv"))[0])
+                except Exception as e: 
+                    print(f"full output not located in {path}: {e}")
+           
+            if len(files) > 1: 
+                df = pd.concat(pd.read_csv(file) for file in files)
+            elif len(files) == 1: 
+                df = pd.read_csv(files[0])
+            elif len(files) == 0:     
+                return None
+            
+            filename = f"{output_path}/full_output_merged.csv"
+            df.to_csv(filename)
+            print(f"full output: {len(df)} lines from {len(files)} files saved to {Path(filename).name}")
+
+        if self.params[("merge","merge_obj_images")]: 
+            path = Path(output_path).joinpath("objs")
+            os.makedirs(path, exist_ok=True)
+            files = []
+            for path in paths: 
+                files.extend(list(Path(path).joinpath("objs").glob("*.png")))
+            print(f"object images: found {len(files)} images")
+            [shutil.copy(file, str(Path(output_path).joinpath("objs").joinpath(str(Path(file).name)))) for file in files]      
+            print(f"object images: copied {len(files)} images")
+            
+        if self.params[("merge","merge_frames")]:
+            path = Path(output_path).joinpath("frames")
+            os.makedirs(path, exist_ok=True)
+            files = dict()
+            for path in paths: 
+                for name in Path(path).joinpath("frames").glob("*.png"): 
+                    if name.name not in files: files[name.name] = str(name)
+            
+            print(f"frames: found {len(files)} images")
+            [shutil.copy(files[name], str(Path(output_path).joinpath("frames").joinpath(name))) for name in files]
+            print(f"frames: copied {len(files)} images")
+
+        print(f"Data merge complete")
 
     def write_params(self, filename=None): 
-        # write to output or safas module if it fails
         if filename is None: 
-            ret = False
-            
             output_path = self.params[("io","output_path")]
             if (output_path is not None) & (output_path != "") & (output_path!=0):
-                filename = Path(self.params[("io","output_path")]).joinpath("_last_params.json")
-                ret = self.write_params(filename=filename)
-            
-            if not ret:  
-                filename = "config/_last_params.json"
-                ret = self.write_params(filename=filename)
+                filename = str(Path(self.params[("io","output_path")]).joinpath("_last_params.json"))
             else: 
-                return True
+                filename = "config/_last_params.json"
+
         try: 
             params_t = flatten_dict.unflatten(self.params)
             with open(filename, "w") as f: json.dump(params_t, f, indent=2)
-            print(f"[cyan]Params[/cyan] written to {Path(filename).name}")
+            print(f"[cyan]Params[/cyan] written to {filename}")
+            return True
         except Exception as e: 
             print(f"Parameters not written {Path(filename).name}: {e}", error=True)
             return False
-        return True
-    
+        
     def write_config(self): 
         try: 
             filename = "config/config.json"
@@ -722,8 +783,7 @@ class Handler(QtCore.QObject):
         except Exception as e: 
             print(f"Config not written {Path(filename).name}: {e}", error=True)
     
-def microtime()->str:
-    return datetime.now().strftime("%Y-%m-%d-%H-%M-%SS.%f")
+def microtime()->str: return datetime.now().strftime("%Y-%m-%d-%H-%M-%SS.%f")
 
 def load_json(filename, display_params=False): 
     try: 
@@ -754,11 +814,11 @@ def load_video(data_file):
         cap = cv2.VideoCapture(data_file)
         try: 
             ret, out = cap.read() 
-            print(f"[cyan]Video[/cyan] loaded")
+            print(f"[cyan]Video[/cyan] loaded: {data_file}")
             return cap
         except Exception as e: 
-            print(f"[cyan]Video[/cyan] not loaded: {e}")
+            print(f"[cyan]Video[/cyan] not loaded: {data_file}: {e}")
             return None      
     except Exception as e: 
-        print(f"[cyan]Video[/cyan] not loaded: {e}")
+        print(f"[cyan]Video[/cyan] not loaded: {data_file}: {e}")
         return None

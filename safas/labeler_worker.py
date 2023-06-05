@@ -29,8 +29,7 @@ def print_process(
     else:
         log.info(rich_msg)
 
-def print(*args, **kwargs):
-    print_process("bright_yellow", "labeler", *args, **kwargs)
+def print(*args, **kwargs): print_process("bright_yellow", "labeler", *args, **kwargs)
 
 def _producer(q_in, cap, x1, x2):
     """ """
@@ -45,7 +44,7 @@ def _consumer(q_in, q_out, labeler_func, labeler_kwargs):
     """
     while True:
         frame, frame_idx = q_in.get() 
-        if not frame_idx: 
+        if frame_idx is None: 
             q_in.put((None, None)) 
             return   
         objs_f = labeler_func(frame, frame_idx=frame_idx, **labeler_kwargs)
@@ -54,16 +53,15 @@ def _consumer(q_in, q_out, labeler_func, labeler_kwargs):
 def _monitor(q_out, n_frames, objs): 
     
     with Progress() as progress:
-        task = progress.add_task("[cyan]Labeling objects...", total=n_frames+1)
-        i = 0
-        while (not progress.finished) | (not q_out.empty()):            
+        task = progress.add_task("[cyan]Labeling objects...", total=n_frames)
+        while (not progress.finished): # | (not q_out.empty()):            
             frame_idx, objs_f = q_out.get()
             progress.update(task, advance=1)
             objs[frame_idx] = objs_f
     
 def run_labeler(cap, x1, x2, n_threads, labeler_func, labeler_kwargs): 
     """ """   
-    n_frames = x2 - x1
+    n_frames = x2 - x1 + 1
     q_in = Queue(maxsize=100)
     q_out = Queue()
 
@@ -71,16 +69,12 @@ def run_labeler(cap, x1, x2, n_threads, labeler_func, labeler_kwargs):
         worker = Thread(target=_consumer, args=(q_in, q_out, labeler_func, labeler_kwargs))
         worker.setDaemon(True)
         worker.start()
-
     objs = dict()
     mon = Thread(target=_monitor, args=(q_out, n_frames, objs))
     mon.start()
-   
     producer = Thread(target=_producer, args=(q_in, cap, x1, x2))
     producer.start()
-    
     producer.join()
     mon.join()
-
     print('Labeler done')
     return objs

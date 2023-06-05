@@ -18,7 +18,6 @@ Identify objects that have a "crisp" outline (i.e. above a threshold in the grad
 
 import numpy as np
 import cv2
-import warnings
 
 params = {
     "name": "kwargs", 
@@ -70,7 +69,6 @@ def labeler(src,
     ----------
         objs (dict) 
     """
-    
     if src.ndim == 3: src = cv2.cvtColor(src, cv2.COLOR_BGR2GRAY)
 
     src = cv2.GaussianBlur(src, (3, 3), 0)
@@ -83,7 +81,6 @@ def labeler(src,
     _, labels, stats, centroids = cv2.connectedComponentsWithStats(thresh, 4, cv2.CV_32S)
     del thresh
     obj_idxs, coords = labels_to_coords(labels) # get coords of each label in the image
-
     area = stats[:, 4]
     bbox = stats[:,:4]
 
@@ -92,9 +89,6 @@ def labeler(src,
         labels = fill_coords(labels, coords, obj_idxs_fill)
         obj_idxs = np.setdiff1d(obj_idxs, obj_idxs_fill)
 
-    # diffs = compare_idxs_lbls(labels, obj_idxs, disp=False)
-    # if len(diffs) > 0: print(f"CLEAR EDGE OUTPUT obj_idxs diffs: {diffs}", warning=True)
-
     if apply_grad_filter: 
         grad = cal_grad_img(src, grad_thresh_val=grad_thresh_val)
         obj_idxs, grad_counts = np.unique(labels[grad>0], return_counts=True)
@@ -102,17 +96,11 @@ def labeler(src,
         obj_idxs_fill = np.setdiff1d(np.unique(labels), obj_idxs)
         labels = fill_coords(labels, coords, obj_idxs_fill)
 
-    # diffs = compare_idxs_lbls(labels, obj_idxs, disp=False)
-    # if len(diffs) > 0: print(f"GRAD FILTER obj_idxs diffs: {diffs}", warning=True)
-  
     if apply_min_px_filter: 
         obj_idxs_fill = np.intersect1d(np.argwhere(area < area_min_px).ravel(), obj_idxs)
         labels = fill_coords(labels, coords, obj_idxs_fill)
         obj_idxs = np.setdiff1d(obj_idxs, obj_idxs_fill)
 
-    # diffs = compare_idxs_lbls(labels, obj_idxs, disp=False)
-    # if len(diffs) > 0: print(f"MIN PX FILTER obj_idxs diffs: {obj_idxs}", warning=True)
- 
     objs = format_output_objects(obj_idxs=obj_idxs, 
                                 bbox=bbox, 
                                 area=area, 

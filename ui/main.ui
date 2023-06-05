@@ -116,11 +116,11 @@
              <property name="maximumSize">
               <size>
                <width>16777215</width>
-               <height>70</height>
+               <height>90</height>
               </size>
              </property>
              <property name="title">
-              <string>Controls</string>
+              <string/>
              </property>
              <property name="flat">
               <bool>false</bool>
@@ -145,138 +145,261 @@
                <number>0</number>
               </property>
               <item>
-               <layout class="QHBoxLayout" name="horizontalLayout_3">
-                <item>
-                 <widget class="QPushButton" name="button_step_back">
-                  <property name="minimumSize">
-                   <size>
-                    <width>40</width>
-                    <height>40</height>
-                   </size>
-                  </property>
-                  <property name="maximumSize">
-                   <size>
-                    <width>40</width>
-                    <height>40</height>
-                   </size>
-                  </property>
-                  <property name="toolTip">
-                   <string>Back one frame</string>
-                  </property>
-                  <property name="text">
-                   <string/>
-                  </property>
-                 </widget>
-                </item>
-                <item>
-                 <widget class="QPushButton" name="button_step_forward">
-                  <property name="minimumSize">
-                   <size>
-                    <width>40</width>
-                    <height>40</height>
-                   </size>
-                  </property>
-                  <property name="maximumSize">
-                   <size>
-                    <width>40</width>
-                    <height>40</height>
-                   </size>
-                  </property>
-                  <property name="toolTip">
-                   <string>Forward &amp; Start processing</string>
-                  </property>
-                  <property name="text">
-                   <string/>
-                  </property>
-                 </widget>
-                </item>
-                <item>
-                 <widget class="QPushButton" name="button_reprocess">
-                  <property name="minimumSize">
-                   <size>
-                    <width>40</width>
-                    <height>40</height>
-                   </size>
-                  </property>
-                  <property name="maximumSize">
-                   <size>
-                    <width>40</width>
-                    <height>40</height>
-                   </size>
-                  </property>
-                  <property name="toolTip">
-                   <string>Reprocess current frame</string>
-                  </property>
-                  <property name="text">
-                   <string/>
-                  </property>
-                 </widget>
-                </item>
-                <item>
-                 <widget class="QPushButton" name="button_save">
-                  <property name="minimumSize">
-                   <size>
-                    <width>40</width>
-                    <height>40</height>
-                   </size>
-                  </property>
-                  <property name="maximumSize">
-                   <size>
-                    <width>40</width>
-                    <height>40</height>
-                   </size>
-                  </property>
-                  <property name="toolTip">
-                   <string>Save tracks to output</string>
-                  </property>
-                  <property name="text">
-                   <string/>
-                  </property>
-                 </widget>
-                </item>
-                <item>
-                 <widget class="QRadioButton" name="radio_process">
-                  <property name="text">
-                   <string>process</string>
-                  </property>
-                 </widget>
-                </item>
-                <item>
-                 <widget class="QPushButton" name="button_compile">
-                  <property name="minimumSize">
-                   <size>
-                    <width>0</width>
-                    <height>40</height>
-                   </size>
-                  </property>
-                  <property name="maximumSize">
-                   <size>
-                    <width>60</width>
-                    <height>40</height>
-                   </size>
-                  </property>
-                  <property name="toolTip">
-                   <string>Compile saved summary files</string>
-                  </property>
-                  <property name="text">
-                   <string>merge</string>
-                  </property>
-                 </widget>
-                </item>
-                <item>
-                 <spacer name="horizontalSpacer_6">
-                  <property name="orientation">
-                   <enum>Qt::Horizontal</enum>
-                  </property>
-                  <property name="sizeHint" stdset="0">
-                   <size>
-                    <width>40</width>
-                    <height>20</height>
-                   </size>
-                  </property>
-                 </spacer>
-                </item>
-               </layout>
+               <widget class="QGroupBox" name="group_vid_control">
+                <property name="title">
+                 <string>Video Control</string>
+                </property>
+                <layout class="QHBoxLayout" name="horizontalLayout_6">
+                 <property name="spacing">
+                  <number>0</number>
+                 </property>
+                 <property name="leftMargin">
+                  <number>11</number>
+                 </property>
+                 <property name="topMargin">
+                  <number>0</number>
+                 </property>
+                 <property name="rightMargin">
+                  <number>11</number>
+                 </property>
+                 <property name="bottomMargin">
+                  <number>0</number>
+                 </property>
+                 <item>
+                  <layout class="QHBoxLayout" name="horizontalLayout_5">
+                   <property name="leftMargin">
+                    <number>11</number>
+                   </property>
+                   <property name="topMargin">
+                    <number>11</number>
+                   </property>
+                   <property name="rightMargin">
+                    <number>11</number>
+                   </property>
+                   <property name="bottomMargin">
+                    <number>11</number>
+                   </property>
+                   <item>
+                    <widget class="QPushButton" name="button_step_back">
+                     <property name="minimumSize">
+                      <size>
+                       <width>40</width>
+                       <height>40</height>
+                      </size>
+                     </property>
+                     <property name="maximumSize">
+                      <size>
+                       <width>40</width>
+                       <height>40</height>
+                      </size>
+                     </property>
+                     <property name="toolTip">
+                      <string>Step back one frame</string>
+                     </property>
+                     <property name="text">
+                      <string/>
+                     </property>
+                    </widget>
+                   </item>
+                   <item>
+                    <widget class="QPushButton" name="button_step_forward">
+                     <property name="minimumSize">
+                      <size>
+                       <width>40</width>
+                       <height>40</height>
+                      </size>
+                     </property>
+                     <property name="maximumSize">
+                      <size>
+                       <width>40</width>
+                       <height>40</height>
+                      </size>
+                     </property>
+                     <property name="toolTip">
+                      <string>Step forward one frame</string>
+                     </property>
+                     <property name="text">
+                      <string/>
+                     </property>
+                    </widget>
+                   </item>
+                   <item>
+                    <widget class="QPushButton" name="button_reprocess">
+                     <property name="minimumSize">
+                      <size>
+                       <width>40</width>
+                       <height>40</height>
+                      </size>
+                     </property>
+                     <property name="maximumSize">
+                      <size>
+                       <width>40</width>
+                       <height>40</height>
+                      </size>
+                     </property>
+                     <property name="toolTip">
+                      <string>Reload current frame</string>
+                     </property>
+                     <property name="text">
+                      <string/>
+                     </property>
+                    </widget>
+                   </item>
+                   <item>
+                    <widget class="QRadioButton" name="radio_process">
+                     <property name="toolTip">
+                      <string>Toggle processing on/off</string>
+                     </property>
+                     <property name="text">
+                      <string>process</string>
+                     </property>
+                    </widget>
+                   </item>
+                   <item>
+                    <widget class="QPushButton" name="button_save">
+                     <property name="minimumSize">
+                      <size>
+                       <width>40</width>
+                       <height>40</height>
+                      </size>
+                     </property>
+                     <property name="maximumSize">
+                      <size>
+                       <width>40</width>
+                       <height>40</height>
+                      </size>
+                     </property>
+                     <property name="toolTip">
+                      <string>Save selected tracks</string>
+                     </property>
+                     <property name="text">
+                      <string/>
+                     </property>
+                    </widget>
+                   </item>
+                  </layout>
+                 </item>
+                </layout>
+               </widget>
+              </item>
+              <item>
+               <widget class="QGroupBox" name="groupBox_2">
+                <property name="title">
+                 <string>Tools</string>
+                </property>
+                <layout class="QHBoxLayout" name="horizontalLayout_8">
+                 <property name="spacing">
+                  <number>0</number>
+                 </property>
+                 <property name="leftMargin">
+                  <number>0</number>
+                 </property>
+                 <property name="topMargin">
+                  <number>0</number>
+                 </property>
+                 <property name="rightMargin">
+                  <number>0</number>
+                 </property>
+                 <property name="bottomMargin">
+                  <number>0</number>
+                 </property>
+                 <item>
+                  <layout class="QHBoxLayout" name="horizontalLayout_7">
+                   <property name="leftMargin">
+                    <number>11</number>
+                   </property>
+                   <property name="topMargin">
+                    <number>11</number>
+                   </property>
+                   <property name="rightMargin">
+                    <number>11</number>
+                   </property>
+                   <property name="bottomMargin">
+                    <number>11</number>
+                   </property>
+                   <item>
+                    <widget class="QPushButton" name="button_quick_save_params">
+                     <property name="minimumSize">
+                      <size>
+                       <width>40</width>
+                       <height>40</height>
+                      </size>
+                     </property>
+                     <property name="maximumSize">
+                      <size>
+                       <width>40</width>
+                       <height>40</height>
+                      </size>
+                     </property>
+                     <property name="toolTip">
+                      <string>Save auto-reload parameters</string>
+                     </property>
+                     <property name="text">
+                      <string/>
+                     </property>
+                    </widget>
+                   </item>
+                   <item>
+                    <widget class="QPushButton" name="button_compile">
+                     <property name="minimumSize">
+                      <size>
+                       <width>40</width>
+                       <height>40</height>
+                      </size>
+                     </property>
+                     <property name="maximumSize">
+                      <size>
+                       <width>40</width>
+                       <height>40</height>
+                      </size>
+                     </property>
+                     <property name="acceptDrops">
+                      <bool>true</bool>
+                     </property>
+                     <property name="toolTip">
+                      <string>Merge saved files into single directory</string>
+                     </property>
+                     <property name="text">
+                      <string/>
+                     </property>
+                    </widget>
+                   </item>
+                   <item>
+                    <spacer name="horizontalSpacer_6">
+                     <property name="orientation">
+                      <enum>Qt::Horizontal</enum>
+                     </property>
+                     <property name="sizeHint" stdset="0">
+                      <size>
+                       <width>40</width>
+                       <height>20</height>
+                      </size>
+                     </property>
+                    </spacer>
+                   </item>
+                   <item>
+                    <widget class="QPushButton" name="button_info">
+                     <property name="minimumSize">
+                      <size>
+                       <width>40</width>
+                       <height>40</height>
+                      </size>
+                     </property>
+                     <property name="maximumSize">
+                      <size>
+                       <width>40</width>
+                       <height>40</height>
+                      </size>
+                     </property>
+                     <property name="text">
+                      <string/>
+                     </property>
+                    </widget>
+                   </item>
+                  </layout>
+                 </item>
+                </layout>
+               </widget>
               </item>
              </layout>
             </widget>
@@ -777,9 +900,10 @@
     <addaction name="separator"/>
     <addaction name="actionLoad_Parameters"/>
     <addaction name="actionSave_Parameters"/>
+    <addaction name="actionSave_Parameters_As"/>
     <addaction name="separator"/>
-    <addaction name="actionSave_Tracks"/>
-    <addaction name="actionMerge_Outputs"/>
+    <addaction name="actionSave_Tracks_2"/>
+    <addaction name="actionMerge_Outputs_2"/>
    </widget>
    <addaction name="menuFile"/>
   </widget>
@@ -868,9 +992,9 @@
     <string>Load Parameters</string>
    </property>
   </action>
-  <action name="actionSave_Parameters">
+  <action name="actionSave_Parameters_As">
    <property name="text">
-    <string>Save Parameters</string>
+    <string>Save Parameters As ...</string>
    </property>
   </action>
   <action name="actionSave_Tracks">
@@ -879,6 +1003,21 @@
    </property>
   </action>
   <action name="actionMerge_Outputs">
+   <property name="text">
+    <string>Merge Outputs</string>
+   </property>
+  </action>
+  <action name="actionSave_Parameters">
+   <property name="text">
+    <string>Save Quick Parameters</string>
+   </property>
+  </action>
+  <action name="actionSave_Tracks_2">
+   <property name="text">
+    <string>Save Tracks</string>
+   </property>
+  </action>
+  <action name="actionMerge_Outputs_2">
    <property name="text">
     <string>Merge Outputs</string>
    </property>

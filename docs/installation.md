@@ -1,5 +1,41 @@
 # Installation
-The preferred method to install Safas is to prepare a virtual environment. A Conda 'environment.yml' file is provided with Safas to setup an identical environment for Safas installation and operation.
+
+The easiest way to use Safas is to download a pre-compiled binary (e.g. safas.exe for Windows). For tinkering and development, a few notes are made below for setting up Safas in a virtual environment. 
+
+The 
+## Virtualenv
+The virtualenv package was used to make a virtual environment for Safas development with pip as the package manager. This was chosen due to the use of pip freeze to generate the compiled (safas.exe on Windows) version of the software. It should still be possible to run the project from Conda; however this is no longer the preferred method. 
+
+Steps: 
+1. Install [virtualenv](https://virtualenv.pypa.io/en/latest/installation.html). Perhaps the easiest way is if you already have a Python interpreter installed is to use: 
+```
+python -m pip install --user virtualenv
+```
+2. Open a console window inside the top-level project directory. Hint: In Windows you can type "cmd" in the address bar while in the project directory to open a console window there. 
+
+3. Create and activate the virtualenv. 
+```
+virtualenv venv
+.\venv\Scripts\activate
+```
+4. Install the requirements. 
+Activate virtual env: 
+```
+safas-dist$ .\venv\scripts\activate
+```
+
+
+Create virtual env: 
+```
+virtualenv venv
+.\venv\Scripts\activate
+```
+
+Activate virtual env: 
+```
+mudrushdetector-master$ .\venv\scripts\activate
+```
+
 
 Setup before install:
 * Download and install [Miniconda3](https://docs.conda.io/en/latest/miniconda.html) or [Anaconda](https://www.anaconda.com/distribution/#download-section)

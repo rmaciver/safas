@@ -30,10 +30,10 @@ params = {
         {"name": "dist_max_filt", "title": "Filter close objects", "type":  "bool", "value": True},
         {"name": "dist_max_filt_m", "title": "Filter dist m", "type":  "float", "limits": [0, 3000], "value": 200},
         {"name": "dist_max_filt_k", "title": "FIlter dist k", "type":  "float", "limits": [0, 5], "value": 1.25},
-        {"name": "dist_wt", "title": "Distance error weight", "type":  "float", "value": 1},
+        {"name": "dist_wt", "title": "Distance error weight", "type":  "float", "value": 1, "limits": [0, 100]},
         {"name": "dist_square", "title": "Dist error square", "type":  "bool", "value": True},
-        {"name": "area_wt", "title": "Area error weight", "type":  "float", "value": 1},
-        {"name": "area_square", "title": "Area error square", "type":  "bool", "value": True},
+        {"name": "area_wt", "title": "Area error weight", "type":  "float", "value": 1, "limits": [0, 100]},
+        {"name": "area_square", "title": "Area error square", "type":  "bool", "value": True,},
         {"name": "error_threshold", "title": "Error threshold", "type":  "float", "limits": [1, 1e6], "value": 1e3},
 
     ]

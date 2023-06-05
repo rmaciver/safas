@@ -3,7 +3,7 @@
     "params_file": "params.json",
     "input_path": null,
     "output_path": null,
-    "data_file": "C:\\Users\\rmcma\\data-phd\\2019_TUD_floc_data\\raw\\2019-12-11_PoH_data\\part2_RV2-RT2-KH2\\003_reinerstieg_vornafen_26-9-19_00.avi",
+    "data_file": null,
     "process_on_new_frame": true,
     "process_n_frames": false,
     "n_frames": 50,
@@ -13,7 +13,7 @@
     "common": {
       "params_file": null,
       "name": "edge_gradient",
-      "process": true
+      "process": false
     },
     "kwargs": {
       "thresh_inv": true,
@@ -30,8 +30,8 @@
     "common": {
       "params_file": null,
       "name": "linear_flocs",
-      "process": true,
-      "obj-select-mode": "none"
+      "process": false,
+      "obj-select-mode": "auto"
     },
     "kwargs": {
       "dist_max_filt": true,
@@ -79,10 +79,10 @@
     "tracks": {
       "show_objs": true,
       "contour_color": [
-        202,
-        97,
+        0,
+        0,
         255,
-        50
+        125
       ],
       "contour_linewidth": 0.25,
       "contour_color_active": [

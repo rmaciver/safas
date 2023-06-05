@@ -28,11 +28,9 @@ class PhotoViewer(QtWidgets.QGraphicsView):
         self.setBackgroundBrush(QtGui.QBrush(QtGui.QColor(30, 30, 30)))
         self.setFrameShape(QtWidgets.QFrame.NoFrame)
         
-        if layout is not None: 
-            layout.addWidget(self)
+        if layout is not None: layout.addWidget(self)
 
-    def hasPhoto(self):
-        return not self._empty
+    def hasPhoto(self): return not self._empty
 
     def fitInView(self, scale=True):
         rect = QtCore.QRectF(self._photo.pixmap().rect())
@@ -109,16 +107,10 @@ class Viewer(PhotoViewer):
 
     def __init__(self, parent=None, layout=None, *args, **kwargs):
         super(Viewer, self).__init__(parent=parent, layout=layout, *args, **kwargs)
-        #super(Viewer, self).__init__()
-        #self.viewer = PhotoViewer(parent=parent, layout=layout) # Not sure why subclassing & adding as attribute
-
-        if parent is not None: 
-            self.parent = parent # access to safas.handler.Handler
-
+ 
+        if parent is not None: self.parent = parent # access to safas.handler.Handler
         self.fr = QtWidgets.QFrame()
-    
-        if layout is not None: 
-            layout.addWidget(self.fr)
+        if layout is not None: layout.addWidget(self.fr)
 
         qh = QtWidgets.QHBoxLayout()
         if layout is not None: 
@@ -142,15 +134,13 @@ class Viewer(PhotoViewer):
         try: 
             fname = Path(parent.resource_path).joinpath("ui/tracking_plus_words.png")
             image = cv2.imread(str(fname))
-            #self.viewer.set_zoom(10)
-            self.set_zoom(10)
+            self.update_frame({"raw_image": image, "frame_idx": 0, "objs_an": None, "tracks_an": None}) 
             time.sleep(0.1)
-            self.update_frame({"raw_image": image, "frame_idx": 0, "objs_an": None, "tracks_an": None})    
+            self.set_zoom(15)   
+   
         except Exception as e: 
-            print(f"Did not load splash image: {e}", error=True)
+            print(f"Splash image: {e}", error=True)
         
-        #QtCore.QTimer().start(500)
-
     @QtCore.Slot(int)
     def update_video_index(self, frame_idx): 
         """ """
@@ -160,8 +150,7 @@ class Viewer(PhotoViewer):
     
     @QtCore.Slot(int)
     def inc_video_index(self, frame_idx_inc): 
-        """ frame_idx_inc: +/- 1
-        """
+        """ frame_idx_inc: +/- 1         """
         self.frame_idx += frame_idx_inc
         self.label.setText(str(self.frame_idx))
         self.frame_idx_change.emit(self.frame_idx)
@@ -179,7 +168,6 @@ class Viewer(PhotoViewer):
         """         
         """
         self.frame_idx = fr["frame_idx"]
-        #self.viewer.setPhoto(fr["raw_image"])
         self.setPhoto(fr["raw_image"])
 
         track_idxs, obj_idxs = self.parent.handler.get_items_in_frame(self.frame_idx)
@@ -218,7 +206,6 @@ class Viewer(PhotoViewer):
                 
                 for i in item: 
                     try: 
-                        #self.viewer._scene.removeItem(i)
                         self._scene.removeItem(i)
                     except Exception as e: 
                         if disp: print(f"An. idx {idx} type {key} item {i}: {e}", debug=True)
@@ -237,19 +224,16 @@ class Viewer(PhotoViewer):
             c_kwargs = objs_an["kwargs"]
             
             if setHighlight: 
-                # remove and replace prev highlight
-                an = self.annotations["objs"]
+                an = self.annotations["objs"] # remove and replace prev highlight
                 obj_idxs_t = [i for i in an if an[i]["highlighted"]]
                 if len(obj_idxs_t) > 0:  
                     self.add_objs(frame_idx, [obj_idxs_t[0]], setHighlight=False)
                 
-                # now add current with color modified
-                hl_c_kwargs = deepcopy(c_kwargs)
+                hl_c_kwargs = deepcopy(c_kwargs) # now add current with color modified
                 hl_c_kwargs["contour_color"] = hl_c_kwargs["contour_color_active"]
                 contour_item = self.add_contour(contour, **hl_c_kwargs)
             else: 
-                # add current with standard color
-                contour_item = self.add_contour(contour, **c_kwargs)
+                contour_item = self.add_contour(contour, **c_kwargs) # add current with standard color
 
             self.annotations["objs"][obj_idx] = {"contour_item": contour_item, 
                                                  "frame_idx": frame_idx,
@@ -265,11 +249,10 @@ class Viewer(PhotoViewer):
         for obj_idx in obj_idxs:  
             if obj_idx in self.annotations["objs"]: 
                 item = self.annotations["objs"][obj_idx]
-                #self.viewer._scene.removeItem(item["contour_item"])
                 self._scene.removeItem(item["contour_item"])
                 self.annotations["objs"].pop(obj_idx)
 
-    # # NOTE: add_contour is common to add_objs and add_tracks - ie patches and tracks are just contours   
+    # NOTE: add_contour is common to add_objs and add_tracks - ie patches and tracks are just contours   
     def add_contour(self, contour, contour_color=(0,255,0, 125), contour_linewidth=2, 
                     filled=True, closed=True, **kwargs): 
         """ """       

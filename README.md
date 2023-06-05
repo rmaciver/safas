@@ -1,13 +1,5 @@
 # SAFAS 
 
-The latest version of SAFAS is a software to label and track objects in videos. This is the experimental version of SAFAS which will become v1.0.0 when it is released. At this time, the "plubming" is in place, but it has not been thoroughly tested so it is not ready for production use. 
-
-Release TODO: 
-* Update docs site
-* Test workflow and calculations
-* Package for distribution
-
-# Overview
 Safas is **s**edimentation **a**nd **f**loc **a**nalysis **s**oftware, a Python module for processing and interpretation of images and videos of flocs, a.k.a. aggregates, a.k.a. cohesive sediments.
 
 <img alt="mud floc sedimentation" src="docs/img/safas.jpg" />

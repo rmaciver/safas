@@ -1,35 +1,23 @@
 """
-safas/linkers/linear_flocs/linker
-
-The linker matches objects in a series of images.
-The track formed is a list of objects. 
-The linker algorithm is separate from the track management.
-Simple data structures (lists, dict) are preferred to classes. 
-Functions that transform the data structures are preferred to class attributes.
-Start with the simple case of matching by size and distance. 
-Suitable for processing a recorded video, not a live video feed.
+safas/writers/
 
 """
-from copy import deepcopy
 import uuid
-import json
 from pathlib import Path
-import sys
 import os
+import logging
+import multiprocessing
+
+from copy import deepcopy
+from threading import Thread
+from queue import Queue
+from concurrent.futures import ThreadPoolExecutor
+
+from rich.progress import Progress
 
 import cv2
 import numpy as np
-from matplotlib import pyplot as plt
 import pandas as pd
-import logging
-
-from rich import progress
-
-# # NOTE: path hack to get relative import above top of package. to fix on install. 
-# path = str(Path(__file__).absolute().parents[2])
-# sys.path.append(path) # Adds higher directory to python modules path.
-
-# from prints import print_writer as print
 
 params = {
     "name": "kwargs", 
@@ -39,8 +27,9 @@ params = {
     [	
         {"name": "save_frames", "type": "bool", "value": True},
         {"name": "save_obj_image", "type": "bool", "value": True},
-        {"name": "max_angle_dev", "type": "float", "value": 30, "limits": [0, 90]},
+        {"name": "max_track_angle", "type": "float", "value": 30, "limits": [0, 90]},
         {"name": "min_frames_per_track", "type": "int", "value": 5, "limits": [1, 50]},
+        {"name": "join_discont_tracks", "type": "bool", "value": False,},
         {"name": "clear_tracks_on_save", "type": "bool", "value": True,},
         {"name": "clear_objs_on_save", "type": "bool", "value": True,},
         {"name": "px_um_cal", "type": "float", "value": 8.6},
@@ -49,7 +38,6 @@ params = {
 
 log = logging.getLogger("rich")
 
-# TODO: get relative import of prints from safas
 def print_process(
     color, process_name, *args, error=False, warning=False, exception=False, **kwargs
     ):
@@ -65,8 +53,7 @@ def print_process(
     else:
         log.info(rich_msg)
 
-def print(*args, **kwargs):
-    print_process("dark_green", "writer", *args, **kwargs)
+def print(*args, **kwargs): print_process("cyan", "writer", *args, **kwargs)
 
 def setup(): return None
 
@@ -74,30 +61,31 @@ def writer(output_path, tracks, objs, cap,
            px_um_cal=1, 
            save_frames=True, 
            save_obj_img=True, 
-           max_angle_dev=30, 
-           min_frames_per_track=5, 
+           max_track_angle=None, 
+           min_frames_per_track=None, 
+           join_discont_tracks=False, 
            clear_on_save=True, 
            **kwargs): 
     """ 
     """
     if len(tracks) == 0: 
+        print(f"No tracks to save.")
         return tracks, objs
     
-    if save_obj_img: 
-        obj_img_path = str(Path(output_path).joinpath("objs"))
-        os.makedirs(obj_img_path, exist_ok=True)
-
     fps = float(cap.get(cv2.CAP_PROP_FPS))
     dt = 1/fps
-    
+    print(f"Saving output to: {output_path}")
     print(f"Object properties caculated using {fps:0.2f} fps and metric pixel conversion of {px_um_cal:0.1f} um/px")
     
     track_idxs = list(set([key[0] for key in tracks])) # all tracks available
-    dfx = [] #pd.DataFrame(columns=["track_idx", ])
+    dfx = [] 
+    frame_items = dict()
+    print(f"Analyzing {len(track_idxs)} tracks")
     for track_idx in track_idxs: 
         keys = [key for key in tracks if key[0]==track_idx]
         items = []
-        
+        track_uuid = str(uuid.uuid4())
+  
         for key in keys: 
             track_idx = key[0]
             frame_idx = key[1]
@@ -105,7 +93,12 @@ def writer(output_path, tracks, objs, cap,
             cent = tracks[key]["obj_centroid"]
             area = tracks[key]["obj_area"]  
             contour = tracks[key]["obj_contour"]
-
+            bbox = tracks[key]["obj_bbox"]
+            
+            if track_uuid not in frame_items: # keep first object for cropping later
+                obj_item ={"track_idx": track_idx, "frame_idx": frame_idx, "obj_idx": obj_idx, "bbox": bbox}
+                frame_items[track_uuid] = obj_item
+            
             if len(contour) >= 5: 
                 ellipse = cv2.fitEllipse(tracks[key]["obj_contour"])
                 (xc,yc),(major_axis, minor_axis), angle = ellipse
@@ -115,13 +108,9 @@ def writer(output_path, tracks, objs, cap,
                 minor_axis = min(tracks[key]["obj_bbox"][2:])
 
             match_error = tracks[key]["match_error"]
-            
-            # perimeter = cv2.arcLength(contours_i[0],True)
-            # ellipse = cv2.fitEllipse(contours_i[0])
-            # (xc,yc),(major_axis, minor_axis), angle = ellipse
-            # ferret_x, ferret_y = np.where(mask>0)
 
             item = {
+                "track_uuid": track_uuid,
                 "frame_idx": frame_idx,
                 "track_idx": track_idx,
                 "obj_idx": obj_idx,
@@ -135,33 +124,8 @@ def writer(output_path, tracks, objs, cap,
             
             items.append(item)
 
-
-        # TODO: setup save cropped images and masks
-       
-        # if save_obj_img: 
-        #     try: 
-        #         x, y, dx, dy = tracks[key]["obj_bbox"]
-        #         pad = 5
-                
-        #         xmin = np.clip(x-pad, a_min=0, a_max=src.shape[0]) 
-        #         xmax = np.clip(x+dx+pad, a_min=0, a_max=src.shape[0])
-        #         ymin = np.clip(y-pad, a_min=0, a_max=src.shape[1]) 
-        #         ymax = np.clip(y+dy+pad, a_min=0, a_max=src.shape[1])
-
-        #         obj_img = src[xmin:xmax, ymin:ymax]
-        #         obj_mask = mask[xmin:xmax, ymin:ymax]
-        #     else: 
-        #         obj_img, obj_mask = None, None
-
-        #         for im_type in ["obj_img", "obj_img_mask"]: 
-        #             img = tracks[key][im_type]
-        #             if not (np.array(img.shape) ==0).any(): 
-        #                 cv2.imwrite(str(Path(obj_img_path).joinpath(f"{track_idx}-{frame_idx}-{obj_idx}.png")), img)
-        #     except KeyError as e: 
-        #         None # image is not present - maybe not saved upstream
-                
         df = pd.DataFrame(items)
-        # summary stats
+  
         df["area_mean"] = df.area.mean()
         df["major_axis_mean"] = df.major_axis.mean()
         df["minor_axis_mean"] = df.major_axis.mean()
@@ -172,55 +136,95 @@ def writer(output_path, tracks, objs, cap,
         df["vel_y_mean"] = df.vel_y_inst.mean()
         df["N_frames"] = len(df)
         
-        # TODO: (!) angle calculation is incorrect
-        cents = np.array([(item["x_pos"], item["y_pos"]) for item in items])
-        angles = [angle_between(np.array([1,0]), cent) for cent in cents]
-        
-        df["angle"] = angles
-        angle_mean = np.abs(df.angle.mean())
-        df["angle_mean"] = angle_mean
-        df["match_error_mean"] = df["match_error"][1:].mean()
-
-        # criteria to exclude from summary
-        if angle_mean > max_angle_dev: 
-            continue
-        if len(df) < min_frames_per_track: 
-            continue
-        
+        pts = np.array([(item["x_pos"], item["y_pos"]) for item in items])
+        import pdb; pdb.set_trace()
+        vect = [pts[1:]-pts[:-1]]
+        angles = [angle_between(v, np.array([0, 1])) for v in vect]
+        df.loc[1:, "angles"] = angles
         dfx.append(df) # full output
     
     if len(dfx) == 0: 
         print(f"No tracks saved: {len(track_idxs)} tracks tested, but 0 remain after filters")
         return tracks, objs
     
-    dfx = pd.concat(dfx)
-    dfx.to_csv(f"{output_path}/full_output.csv")
+    dfx = pd.concat(dfx) # raw data
     
-    # filter the summary
-    dft = dfx.groupby("track_idx").last().reset_index(drop=False)
+    if (min_frames_per_track is not None) & isinstance(min_frames_per_track, int): 
+        track_uuid, ct = np.unique(df["track_uuid"], return_counts=True)
+        track_uuid = track_uuid[ct>=min_frames_per_track]
+        df = df.set_index("track_uuid").loc[track_uuid]
+
+    if (max_track_angle is not None) & isinstance(max_track_angle, float): 
+        if dfx.index.name != "track_uuid": dfx.set_index("track_uuid", inplace=True)
+        print(f"Analyzing track angles")
+        track_uuids = []
+        for track_uuid in df.index.unique(): 
+            if (df.loc[track_uuid, 'angles'].iloc[1:] < max_track_angle).all(): 
+                track_uuids.append(track_uuid)
+        print(f"Removing {len(dfx.index.unique()) - len(track_uuids)} tracks with angle > {max_track_angle} degrees")
+        dfx = dfx.loc[track_uuids]
+        dfx.reset_index(inplace=True, drop=False)
+
+    dfx.to_csv(f"{output_path}/full_output.csv") # write full output
+
+    dft = dfx.groupby("track_idx").last().reset_index(drop=False) # filter the summary
+
     cols = [
+        "track_uuid", 
         "track_idx", 
         "vel_y_mean", "vel_x_mean", 
         "minor_axis_mean", "major_axis_mean", 
-        "area_mean", "angle_mean", 
-        "match_error_mean", "N_frames"
+        "area_mean", 
+        "N_frames"
     ]
-    dft = dft[cols] # only some columns make sense 
+    dft = dft[cols] # drop some columns in summary
+    frame_idxs = dfx.groupby("track_idx").agg(['first', 'last'])["frame_idx"].values
+    dft["frame_idx_start"] = frame_idxs[:,0]
+    dft["frame_idx_end"] = frame_idxs[:,1]
     dft.to_csv(f"{output_path}/summary_output.csv")
     
-    # write all the frames
-    save_frames = False
+    if save_obj_img: 
+        print(f"Saving {len(frame_items)} object images")
+        obj_path = str(Path(output_path).joinpath("objs"))
+        os.makedirs(obj_path, exist_ok=True)
+
+        vi = 0
+        cap.set(cv2.CAP_PROP_POS_FRAMES, vi)
+        ret, src = cap.read() 
+
+        for frame_uuid in frame_items: 
+            item = frame_items[frame_uuid]
+            
+            if item["frame_idx"] != vi: 
+                cap.set(cv2.CAP_PROP_POS_FRAMES, item["frame_idx"])
+                vi = item["frame_idx"]
+                ret, src = cap.read() 
+            
+            x, y, dx, dy = item["bbox"] 
+            pad = 5
+                    
+            ymin = np.clip(x-pad, a_min=0, a_max=src.shape[0]) 
+            ymax = np.clip(x+dx+pad, a_min=0, a_max=src.shape[0])
+            xmin = np.clip(y-pad, a_min=0, a_max=src.shape[1]) 
+            xmax = np.clip(y+dy+pad, a_min=0, a_max=src.shape[1])
+
+            obj_crop = src[xmin:xmax, ymin:ymax]
+            if not (np.array(obj_crop.shape) ==0).any(): 
+                fname = f"{item['track_idx']}-{item['frame_idx']}-{item['obj_idx']}-{frame_uuid}.png"
+                cv2.imwrite(str(Path(obj_path).joinpath(fname)), obj_crop)
+
     if save_frames: 
+        print(f"Saving {len(frame_idxs)} frames")
         path = Path(output_path).joinpath("frames")
         os.makedirs(path, exist_ok=True)
-        
         frame_idxs = list(set([key[1] for key in tracks]))
-        for frame_idx in frame_idxs: 
-            cap.set(cv2.CAP_PROP_POS_FRAMES, frame_idx)
-            ret, frame = cap.read()
-            cv2.imwrite(str(output_path.joinpath(f"{str(path)}/{frame_idx:05d}.png")), frame)
+        if len(frame_idxs) > 10: 
+            n_threads = multiprocessing.cpu_count() - 1 
+        else: 
+            n_threads = 1
+        run_frame_writer(cap, frame_idxs, n_threads, path)
+  
     print(f"Output written to: {output_path}")
-
     return tracks, objs
 
 def angle_between(v1, v2):
@@ -231,5 +235,58 @@ def angle_between(v1, v2):
 
 def unit_vector(vector):
     """  unit vector of the vector """
-    # true divide error not solved in some cases
+    # TODO: true divide error not solved in some cases
     return vector / np.linalg.norm(vector)
+
+""" threaded frame writer to speed up"""
+# NOTE: this gives good speedup but perhaps unecc. complex
+def _producer(q_in, cap, frame_idxs, output_path):
+    """ """
+    for frame_idx in frame_idxs: 
+        cap.set(cv2.CAP_PROP_POS_FRAMES, frame_idx)
+        ret, frame = cap.read()
+        fname = str(f"{output_path}/{frame_idx:05d}.png")
+        q_in.put((frame, fname, frame_idx))
+    q_in.put((None, None, None))
+ 
+def _consumer(q_in, q_out):    
+    """
+    """
+    while True:
+        frame, fname, frame_idx = q_in.get() 
+        if not frame_idx: 
+            q_in.put((None, None, None)) 
+            return   
+        cv2.imwrite(fname, frame)
+        q_out.put(frame_idx) 
+
+def _monitor(q_out, n_frames): 
+    
+    with Progress() as progress:
+        task = progress.add_task("[cyan]Writing frames...", total=n_frames)
+        
+        while (not progress.finished) | (not q_out.empty()):            
+            frame_idx = q_out.get()
+            progress.update(task, advance=1)
+    
+def run_frame_writer(cap, frame_idxs, n_threads, output_path): 
+    """ """   
+    q_in = Queue(maxsize=100)
+    q_out = Queue()
+
+    for i in range(n_threads):
+        worker = Thread(target=_consumer, args=(q_in, q_out))
+        worker.setDaemon(True)
+        worker.start()
+
+    objs = dict()
+    mon = Thread(target=_monitor, args=(q_out, len(frame_idxs)))
+    mon.start()
+   
+    producer = Thread(target=_producer, args=(q_in, cap, frame_idxs, output_path))
+    producer.start()
+    
+    producer.join()
+    mon.join()
+
+    print('Frame writer done')

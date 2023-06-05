@@ -1,0 +1,110 @@
+{
+  "io": {
+    "params_file": "params.json",
+    "input_path": null,
+    "output_path": null,
+    "data_file": "C:\\Users\\rmcma\\data-phd\\2019_TUD_floc_data\\raw\\2019-12-11_PoH_data\\part2_RV2-RT2-KH2\\003_reinerstieg_vornafen_26-9-19_00.avi",
+    "process_on_new_frame": false,
+    "process_n_frames": true,
+    "n_frames": 50,
+    "n_threads": 6
+  },
+  "labeler": {
+    "common": {
+      "params_file": null,
+      "name": "edge_gradient",
+      "process": true
+    },
+    "kwargs": {
+      "thresh_inv": true,
+      "thresh_val": 120.0,
+      "apply_grad_filter": false,
+      "grad_thresh_val": 30,
+      "apply_min_px_filter": true,
+      "area_min_px": 5,
+      "cal_axis_length": false,
+      "add_images": false
+    }
+  },
+  "linker": {
+    "common": {
+      "params_file": null,
+      "name": "linear_flocs",
+      "process": true,
+      "obj-select-mode": "auto"
+    },
+    "kwargs": {
+      "dist_max_filt": true,
+      "dist_max_filt_m": 200.0,
+      "dist_max_filt_k": 1.25,
+      "dist_wt": 1.0,
+      "dist_square": true,
+      "area_wt": 1.0,
+      "area_square": true,
+      "error_threshold": 1000.0
+    }
+  },
+  "writer": {
+    "common": {
+      "params_file": null,
+      "name": "sed_exp"
+    },
+    "kwargs": {
+      "save_frames": true,
+      "save_obj_image": true,
+      "max_angle_dev": 30.0,
+      "min_frames_per_track": 5,
+      "clear_tracks_on_save": true,
+      "clear_objs_on_save": true,
+      "px_um_cal": 8.6
+    }
+  },
+  "display": {
+    "objects": {
+      "show": true,
+      "contour_color": [
+        0,
+        255,
+        0,
+        125
+      ],
+      "contour_color_active": [
+        255,
+        0,
+        255,
+        125
+      ],
+      "contour_linewidth": 0.25
+    },
+    "tracks": {
+      "show_objs": true,
+      "contour_color": [
+        202,
+        97,
+        255,
+        50
+      ],
+      "contour_linewidth": 0.25,
+      "contour_color_active": [
+        255,
+        0,
+        0,
+        125
+      ],
+      "show_lines": true,
+      "line_color": [
+        100,
+        50,
+        255,
+        125
+      ],
+      "line_color_active": [
+        0,
+        50,
+        255,
+        125
+      ],
+      "line_linewidth": 0.25
+    }
+  }
+}

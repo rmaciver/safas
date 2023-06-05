@@ -8,7 +8,7 @@ a = Analysis(
     ['safas/app.py'],
     pathex=[],
     binaries=[],
-    datas=[("safas/ui", "ui"), ("safas/config","config")],
+    datas=[("ui", "ui"), ("config","config")],
     hiddenimports=[],
     hookspath=[],
     hooksconfig={},

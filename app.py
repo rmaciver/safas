@@ -3,16 +3,13 @@
 """
 
 import sys
-import threading
 from time import sleep
 from pathlib import Path
 from datetime import datetime
 import queue
 import functools
-
+import os
 from PySide2 import QtWidgets, QtCore, QtGui
-
-import flatten_dict
 
 import safas
 from safas.prints import print_app as print
@@ -41,20 +38,17 @@ class MainWindow(QtWidgets.QMainWindow):
             return None
         self.installEventFilter(self) # custom close event
 
-        for label in ["Save_Tracks", "Merge_Outputs", "Load_Parameters", "Save_Parameters"]: 
+        # file menu qaction items
+        for label in ["Save_Tracks_2", "Merge_Outputs_2", "Load_Parameters", "Save_Parameters", "Save_Parameters_As"]: 
             getattr(self, f"action{label}").triggered.connect(getattr(self, f"click_{label}"))
 
+        self.group_vid_control.setEnabled(False)
         self.load_state()
-    
-    def click_Save_Tracks(self): 
-        """ """
-        self.handler.save_tracks()
+        
+    def click_Save_Tracks_2(self): self.handler.save_tracks()
+    def click_Merge_Outputs_2(self): self.compile()
 
-    def click_Merge_Outputs(self): 
-        """ """
-        self.handler.compile_outputs()
-
-    def click_Save_Parameters(self): 
+    def click_Save_Parameters_As(self): 
         """ """
         try: # case where no io/ base_output key present
             pth = self.p.param('io', 'base_input').value
@@ -70,6 +64,9 @@ class MainWindow(QtWidgets.QMainWindow):
         filename = Path(out[0])
         if filename.suffix != ".json": return False
         self.handler.write_params(filename=filename)
+        self.handler.write_config()
+
+    def click_Save_Parameters(self): self.quick_save_params()
 
     def click_Load_Parameters(self): 
         """ """
@@ -89,100 +86,56 @@ class MainWindow(QtWidgets.QMainWindow):
         self.load_state(filename=filename)
         
     def clear_ui(self, disp=False): 
-        """ custom removal of ui components on reload"""
-        try: 
-            name = "viewer.fr"
-            self.viewer.fr.deleteLater()
-        except Exception as e: 
-            if disp: print(f"could not remove {name}: {e}")
+        """ custom removal of ui components on reload
+        """
+        def _deleteLater_attr(attr): 
+            try: 
+                getattr(self, attr).deleteLater()
+            except Exception as e: 
+                if disp: print(f"could not deleteLater {attr}: {e}")     
 
-        try: 
-            name = "viewer.label"
-            self.viewer.label.deleteLater()
-        except Exception as e: 
-            if disp: print(f"could not remove {name}: {e}")
+        def _deleteLater_names(attr, names): 
+            for name in names: 
+                try: 
+                    getattr(getattr(self, attr), name).deleteLater()
+                except Exception as e: 
+                    if disp: print(f"could not deleteLater {attr}.{name}: {e}")
 
-        try: 
-            name = "viewer.slider"
-            self.viewer.slider.deleteLater()
-        except Exception as e: 
-            if disp: print(f"could not remove {name}: {e}")
+        def _del_attr(attr): 
+            try: 
+                obj = getattr(self, attr)
+                del obj
+            except Exception as e: 
+                if disp: print(f"could not del {attr}: {e}")
+
+        _deleteLater_names("viewer",  ["fr", "label","slider"])
+        _deleteLater_names("params",  ["p", "t"])
+        _deleteLater_names("handler",  ["qt_interactor"])
         
-        try: 
-            name = "viewer"
-            self.viewer.deleteLater()
-        except Exception as e: 
-            if disp: print(f"could not remove {name}: {e}")
-        
-        try: 
-            name = "params.p"
-            self.params.p.deleteLater()
-        except Exception as e: 
-            if disp: print(f"could not remove {name}: {e}")
-
-        try: 
-            name = "params.t"
-            self.params.t.deleteLater()
-        except Exception as e: 
-            if disp: print(f"could not remove {name}: {e}")
-
-        try: 
-            name = "params"
-            del self.params
-        except Exception as e: 
-            if disp: print(f"could not remove {name}: {e}")
-
-        try: 
-            name = "handler.qt_interactor"
-            self.handler.qt_interactor.deleteLater()
-        except Exception as e: 
-            if disp: print(f"could not remove {name}: {e}")
-
-        try: 
-            name = "handler (widget)"
-            self.handler.deleteLater()
-        except Exception as e: 
-            if disp: print(f"could not remove {name}: {e}")
-
-        try: 
-            name = "handler"
-            self.handler
-        except Exception as e: 
-            if disp: print(f"could not remove {name}: {e}")
-
-        try: 
-            name = "tracktab (widget)"
-            self.tracktab.deleteLater()
-        except Exception as e: 
-            if disp: print(f"could not remove {name}: {e}")
-
-        try: 
-            name = "tracktab"
-            del self.tracktab
-        except Exception as e: 
-            if disp: print(f"could not remove {name}: {e}")
+        [_deleteLater_attr(attr) for attr in ["viewer", "handler", "tracktab"]]
+        [_del_attr(attr) for attr in ["viewer", "handler", "tracktab"]]
 
     def load_state(self, filename=None): 
         """ """
-
+        self.params = safas.qtparams.ParamsView(parent=self, layout=self.layout_params)
         self.handler = safas.handler.Handler() 
+        
+        self.handler.qt_interactor.ui_video_loaded_signal.connect(self.group_vid_control.setEnabled)
+         
+        
+        self.params.params_update_signal.connect(self.handler.update_params) 
+        self.handler.qt_interactor.ui_params_update_signal.connect(self.params.sync_from_ext)
+        self.handler.qt_interactor.ui_params_child_signal.connect(self.params.insert_child_group)
+        self.handler.load_params(filename=filename)
+
         self.viewer = safas.qtviewer.Viewer(parent=self, layout=self.layout_video)
         self.viewer.frame_idx_change.connect(self.build_frame) 
-
-        self.params = safas.qtparams.ParamsView(parent=self, layout=self.layout_params)
         
         # image interaction
         self.handler.qt_interactor.frame_ready_signal.connect(self.viewer.update_frame)
         self.handler.qt_interactor.frame_count_signal.connect(self.viewer.set_slider_range)
         self.handler.qt_interactor.frame_idx_signal.connect(self.viewer.update_frame)
 
-        # parameters syncing
-        self.handler.qt_interactor.ui_params_update_signal.connect(self.params.sync_from_ext)
-        self.handler.qt_interactor.ui_params_child_signal.connect(self.params.insert_child_group)
-        
-        self.params.params_update_signal.connect(self.handler.update_params) 
-        self.params.data_file_signal.connect(self.handler.load_source) 
-        
         self.params.p.param("labeler","common","name").sigValueChanged.connect(functools.partial(self.handler.load_node, "labeler"))
         self.params.p.param("linker","common","name").sigValueChanged.connect(functools.partial(self.handler.load_node, "linker"))
         self.params.p.param("writer","common","name").sigValueChanged.connect(functools.partial(self.handler.load_node, node_name="linker"))
@@ -200,19 +153,19 @@ class MainWindow(QtWidgets.QMainWindow):
         self.tracktab.ui_del_objs_signal.connect(self.viewer.del_objs)
         self.tracktab.ui_del_tracks_signal.connect(self.viewer.del_tracks)
         self.handler.qt_interactor.update_lists_signal.connect(self.tracktab.update_lists)
-        
-        self.control_buttons = ["button_step_forward", "button_reprocess", 
-                                "button_step_back", "button_reprocess",
-                                "button_save","button_compile", 
-                                "radio_linking", "radio_labeling"]
-        
+                
         self.setup_control_buttons()
-        self.button_compile.clicked.connect(self.handler.compile_outputs)
-        
         self.radio_process.clicked.connect(self.activate_radio)
-        
+
+        self.params.p.param("labeler","common","process").setValue(False)
+        self.params.p.param("linker","common","process").setValue(False)
+                
+        self.params.p.param("labeler","common","process").setValue(False)
+        self.params.p.param("linker","common","process").setValue(False)
+
         # startup macro
-        self.handler.load_params(filename=filename)
+        self.params.data_file_signal.connect(self.handler.load_source)
+        self.handler.load_source()
         self.handler.load_node("labeler")
         self.handler.load_node("linker")
         self.handler.load_node("writer")
@@ -225,8 +178,8 @@ class MainWindow(QtWidgets.QMainWindow):
         return super(MainWindow, self).eventFilter(obj, event)
 
     def activate_radio(self, v): 
-        self.params.p.param("labeler","common","process").setValue(v) # for key in ["labeler","linker"]]
-        self.params.p.param("linker","common","process").setValue(v) # for key in ["labeler","linker"]]
+        self.params.p.param("labeler","common","process").setValue(v) 
+        self.params.p.param("linker","common","process").setValue(v) 
   
     @QtCore.Slot(int)
     def build_frame(self, frame_idx):
@@ -234,19 +187,29 @@ class MainWindow(QtWidgets.QMainWindow):
         self.handler.build_frame(frame_idx) 
         self.toggle_controls_signal.emit(True)
 
-    # ---- behaviour of buttons below image viewer
-    def setup_control_buttons(self): 
+    def setup_control_buttons(self): # behaviour of buttons below image viewer
         """ """
-        buttons = ["button_step_back", 
-                "button_step_forward",
-                "button_reprocess",
-                "button_save"]
+        buttons = [
+            "button_step_back", 
+            "button_step_forward",
+            "button_reprocess",
+            "button_quick_save_params",
+            "button_save",
+            "button_compile", 
+            "button_info"
+        ]
+
+        self.handler.compile_outputs
         
-        icons = ["ui/control-stop-180.png",
-                "ui/control-stop.png",
-                "ui/arrow-circle-225.png",
-                "ui/disk--arrow.png",
-                ]
+        icons = [
+            "ui/control-stop-180.png",
+            "ui/control-stop.png",
+            "ui/arrow-repeat-once.png",
+            "ui/gear--pencil.png",
+            "ui/disk--pencil.png",
+            "ui/disks.png",
+            "ui/information-italic"
+        ]
         
         for b, ic in zip(buttons, icons): 
             icon = QtGui.QIcon(str(Path(self.resource_path).joinpath(ic)))
@@ -255,7 +218,7 @@ class MainWindow(QtWidgets.QMainWindow):
             try: # ensure not already connected
                 button.clicked.disconnect(getattr(self, b.split("button_")[-1]))
             except Exception as e:
-                None #print(f"{b} button not disconnected: {e}") 
+                None 
             button.clicked.connect(getattr(self, b.split("button_")[-1]))
 
     def step_back(self):
@@ -266,8 +229,40 @@ class MainWindow(QtWidgets.QMainWindow):
     
     def step_forward(self): self.viewer.inc_video_index(1)
     def reprocess(self): self.handler.relabel_frame()
-    
     def save(self): self.handler.save_tracks()
+    
+    def quick_save_params(self): 
+        self.handler.write_params()
+        self.handler.write_config()
+    
+    def info(self): 
+        print(f"\n")
+        print("*************************************")
+        print("SAFAS documentation is available at:")
+        print(f"https://safas.readthedocs.io/en/latest/")
+        print("*************************************")
+        print(f"\n")
+        print(open('README.md').read())
+
+    def compile(self): 
+        try: 
+            pth = self.params.p.param("io","output_path").value()
+            pth = str(Path(pth).absolute().parents[0])
+        except Exception as e: 
+            print(f"Output_path not set: {e}")
+            pth = None
+        
+        dir = QtWidgets.QFileDialog.getExistingDirectory(self, "Select directory that contains outputs to merge",
+                                       pth,
+                                       QtWidgets.QFileDialog.ShowDirsOnly
+                                       | QtWidgets.QFileDialog.DontResolveSymlinks)
+          
+        paths = [str(x) for x in Path(dir).iterdir() if x.joinpath("full_output.csv").exists()]
+        
+        if len(paths) == 0: 
+            print(f"No data in that directory. Ensure data to be compiled is in correct directory.")
+        
+        self.handler.compile_outputs(paths=paths)
 
 class TrackTab(QtCore.QObject): 
     """ """
