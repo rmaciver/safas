@@ -1,7 +1,10 @@
 """
 safas/app.py 
+
 QT app and UI main entry point. 
 
+Contains the MainWindow (connections between ui and safas.handler.Handler) and
+    TrackTab (display and control of tracks and objects)
 """
 import sys
 from pathlib import Path
@@ -16,9 +19,6 @@ RESOURCE_PATH = str(Path(__file__).absolute().parents[0])
 
 from safas.prints import print_app as print
 from safas import loader_util, handler, qtparams, qtviewer
-
-#from .prints import print_app as print
-#from . import loader_util, handler, qtparams, qtviewer
 
 class MainWindow(QtWidgets.QMainWindow):
     """ """
@@ -153,7 +153,7 @@ class MainWindow(QtWidgets.QMainWindow):
                 
         self.setup_control_buttons()
         self.radio_process.clicked.connect(self.activate_radio)
-
+        self.handler.qt_interactor.toggle_process_signal.connect(self.activate_radio)
         self.params.p.param("labeler","common","process").setValue(False)
         self.params.p.param("linker","common","process").setValue(False)
                 
@@ -193,7 +193,8 @@ class MainWindow(QtWidgets.QMainWindow):
             "button_quick_save_params",
             "button_save",
             "button_compile", 
-            "button_info"
+            "button_info",
+            "button_magic"
         ]
 
         self.handler.compile_outputs
@@ -205,7 +206,8 @@ class MainWindow(QtWidgets.QMainWindow):
             "ui/gear--pencil.png",
             "ui/disk--pencil.png",
             "ui/disks.png",
-            "ui/information-italic"
+            "ui/information-italic",
+            "ui/wand-magic.png"
         ]
         
         for b, ic in zip(buttons, icons): 
@@ -227,7 +229,8 @@ class MainWindow(QtWidgets.QMainWindow):
     def step_forward(self): self.viewer.inc_video_index(1)
     def reprocess(self): self.handler.relabel_frame()
     def save(self): self.handler.save_tracks()
-    
+    def magic(self): 
+        print(f"Magic! Add your own feature here!")
     def quick_save_params(self): 
         self.handler.write_params()
         self.handler.write_config()

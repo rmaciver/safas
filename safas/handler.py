@@ -56,6 +56,7 @@ class QtInteractor(QtCore.QObject):
     ui_params_update_signal = QtCore.Signal(dict)
     ui_params_child_signal = QtCore.Signal(str, dict)
     ui_video_loaded_signal = QtCore.Signal(bool)
+    toggle_process_signal = QtCore.Signal(bool)
 
     def update_qt_node_params(self, node_name, key, params_list): 
         try: 
@@ -320,6 +321,67 @@ class Handler(QtCore.QObject):
         
         return (setup, func, params_list, errors)
 
+    def build_frame(self, frame_idx):  
+        """Assemble frame at given index for front-end"""
+        if self.cap is None: 
+            print(f"[cyan]Source[/cyan] not loaded", warning=True)   
+            return None
+
+        process_on_new_frame = self.params[("io","process_on_new_frame")]
+        process_n_frames = self.params[("io", "process_n_frames")]
+
+        if process_on_new_frame & process_n_frames: 
+            raise ValueError("Only one of process_on_new_frame or process_n_frames can be true")    
+
+        if self.params[('labeler','common','process')] & (self.labeler is not None): 
+            try: 
+                if self.params[("labeler", "common","process")]: 
+                    vi = self.run_labeler(image_index=frame_idx, 
+                                    process_on_new_frame=process_on_new_frame, 
+                                    process_n_frames=process_n_frames, 
+                                    display_table=True)
+                else: 
+                    vi = frame_idx
+            except AttributeError as e: 
+                print(f"[cyan]Labeler[/cyan] error: {e}", errror=True)
+                vi = frame_idx
+        else: 
+            vi = frame_idx
+
+        if self.params[('linker','common','process')] & (self.linker is not None): # Linker
+            try: 
+                obj_selection = self.params[("linker","common", "obj-select-mode")]
+                if self.params[("linker", "common", "process")]: 
+                    self.run_linker(frame_idx=frame_idx, 
+                                process_on_new_frame=process_on_new_frame, 
+                                process_n_frames=process_n_frames, 
+                                obj_selection=obj_selection
+                    )
+            except AttributeError as e: 
+                print(f"[cyan]Linker[/cyan] error: {e}", errror=True)
+        
+        try:  # Update to latest frame
+            self.cap.set(cv2.CAP_PROP_POS_FRAMES, vi)
+            result, image = self.cap.read()
+        except Exception as e: 
+            print(f"Could not get image from cap: {e}")
+
+        tracks_an = self.build_tracks_an(vi)     
+        objs_an = self.build_obj_an(vi)
+     
+        self.latest_frame = {"raw_image": image, "objs_an": objs_an, "tracks_an": tracks_an, "frame_idx": vi}
+        
+        if USE_QT: 
+            try: 
+                self.qt_interactor.frame_ready_signal.emit(self.latest_frame) # TODO: may optimize with a queue
+            except Exception as e:  
+                print(f"Did not emit frame via frame_read_signal: {e}")
+            self.qt_interactor.update_lists_signal.emit(vi)
+            if process_n_frames: 
+                self.qt_interactor.toggle_process_signal.emit(False)
+        else: 
+            return self.latest_frame
+        
     def run_labeler(self, 
                     image_index=None, 
                     process_on_new_frame=True, 
@@ -338,14 +400,16 @@ class Handler(QtCore.QObject):
             return None
         
         if process_n_frames:  
-            x1, x2 = image_index, image_index + self.params[("io", "n_frames")] 
+            n_frames = self.params[("io", "n_frames")] 
+            x1, x2 = image_index, image_index + n_frames -1 
             x2 = min(x2, int(self.cap.get(cv2.CAP_PROP_FRAME_COUNT)))
             n_threads = multiprocessing.cpu_count() - 1 
         elif process_on_new_frame: 
+            n_frames = 1
             x1, x2 = image_index, image_index
             n_threads = 1
         
-        print(f"[cyan]Labeler[/cyan] [dark_green]{self.labeler.name}[/dark_green] on {x2-x1} images from {x1} to {x2-1} with {n_threads} threads")
+        print(f"[cyan]Labeler[/cyan] [dark_green]{self.labeler.name}[/dark_green] on {n_frames} images from {x1} to {x2} with {n_threads} threads")
         start = time.perf_counter()
 
         try:  
@@ -374,7 +438,7 @@ class Handler(QtCore.QObject):
             console = rich.console.Console()
             console.print(table)
 
-        print(f"Processed {x2-x1} images in {finish-start:0.1f} second(s)") 
+        print(f"Processed {n_frames} images in {finish-start:0.1f} second(s)") 
         return x2
 
     def run_linker(self,
@@ -471,67 +535,6 @@ class Handler(QtCore.QObject):
                 self.qt_interactor.frame_idx_signal.emit(v)
             except Exception as e: 
                 print(f"Frame index not emitted by qt_interactor: {e}")
-
-    def build_frame(self, frame_idx):  
-        """Assemble frame at given index for front-end"""
-        if self.cap is None: 
-            print(f"[cyan]Source[/cyan] not loaded", warning=True)   
-            return None
-
-        process_on_new_frame = self.params[("io","process_on_new_frame")]
-        process_n_frames = self.params[("io", "process_n_frames")]
-
-        if process_on_new_frame & process_n_frames: 
-            raise ValueError("Only one of process_on_new_frame or process_n_frames can be true")    
-
-        if self.params[('labeler','common','process')] & (self.labeler is not None): 
-            try: 
-                if self.params[("labeler", "common","process")]: 
-                    print(f"labelling: {frame_idx}")
-                    vi = self.run_labeler(image_index=frame_idx, 
-                                    process_on_new_frame=process_on_new_frame, 
-                                    process_n_frames=process_n_frames, 
-                                    display_table=True)
-                else: 
-                    vi = frame_idx
-            except AttributeError as e: 
-                print(f"[cyan]Labeler[/cyan] error: {e}", errror=True)
-                vi = frame_idx
-        else: 
-            vi = frame_idx
-
-        if self.params[('linker','common','process')] & (self.linker is not None): # Linker
-            try: 
-                obj_selection = self.params[("linker","common", "obj-select-mode")]
-                if self.params[("linker", "common", "process")]: 
-                    self.run_linker(frame_idx=frame_idx, 
-                                process_on_new_frame=process_on_new_frame, 
-                                process_n_frames=process_n_frames, 
-                                obj_selection=obj_selection
-                    )
-            except AttributeError as e: 
-                print(f"[cyan]Linker[/cyan] error: {e}", errror=True)
-        
-        try:  # Update to latest frame
-            self.cap.set(cv2.CAP_PROP_POS_FRAMES, vi)
-            result, image = self.cap.read()
-        except Exception as e: 
-            print(f"Could not get image from cap: {e}")
-
-        tracks_an = self.build_tracks_an(vi)     
-        objs_an = self.build_obj_an(vi)
-     
-        self.latest_frame = {"raw_image": image, "objs_an": objs_an, "tracks_an": tracks_an, "frame_idx": vi}
-        
-        if USE_QT: 
-            try: 
-                self.qt_interactor.frame_ready_signal.emit(self.latest_frame) # TODO: may optimize with a queue
-            except Exception as e:  
-                print(f"Did not emit frame via frame_read_signal: {e}")
-            self.qt_interactor.update_lists_signal.emit(vi)
- 
-        else: 
-            return self.latest_frame
         
     def relabel_frame(self): self.rebuild_frame(setLabelerOn=True) 
 
@@ -549,7 +552,6 @@ class Handler(QtCore.QObject):
     def build_tracks_an(self, frame_idx, track_idxs=None):
         """ """ 
         # NOTE: want tracks upt to previous frame
-        frame_idx += 1
         params_t = deepcopy(flatten_dict.unflatten(self.params)["display"])
         tracks_an = {"tracks": dict(), "kwargs": params_t["tracks"]} 
         
@@ -557,8 +559,8 @@ class Handler(QtCore.QObject):
             tracks_an = None
         else: 
             if track_idxs is None: 
-                track_idxs = list(set([l[0] for l in self.tracks if l[1] <= frame_idx]))
-            
+                track_idxs = list(set([l[0] for l in self.tracks if l[1] <=(frame_idx)]))
+
             if isinstance(track_idxs, int): 
                 track_idxs = [track_idxs]
 
@@ -566,7 +568,7 @@ class Handler(QtCore.QObject):
                 return None
             
             for track_idx in track_idxs:   
-                keys = [key for key in self.tracks if ((key[0]==track_idx) & (key[1]<=frame_idx))]
+                keys = [key for key in self.tracks if ((key[0]==track_idx) & (key[1]<=(frame_idx)))]
        
                 if params_t["tracks"]["show_lines"]: 
                     centroids = np.array([self.tracks[key]["obj_centroid"] for key in keys])

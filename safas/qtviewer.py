@@ -174,7 +174,7 @@ class Viewer(PhotoViewer):
         
         if len(track_idxs) > 0: self.add_tracks(self.frame_idx, track_idxs) 
         if len(obj_idxs) > 0: self.add_objs(self.frame_idx, obj_idxs)
-
+  
         try: # NOTE frame and index change may come from backend not UI
             self.label.setText(str(self.frame_idx)) 
             self.slider.blockSignals(True)

@@ -1,5 +1,3 @@
-# Safas
-
 # SAFAS 
 
 Safas is **s**edimentation **a**nd **f**loc **a**nalysis **s**oftware, a Python module for processing and interpretation of images and videos of flocs, a.k.a. aggregates, a.k.a. cohesive sediments.

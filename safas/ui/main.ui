@@ -255,28 +255,6 @@
                      </property>
                     </widget>
                    </item>
-                   <item>
-                    <widget class="QPushButton" name="button_save">
-                     <property name="minimumSize">
-                      <size>
-                       <width>40</width>
-                       <height>40</height>
-                      </size>
-                     </property>
-                     <property name="maximumSize">
-                      <size>
-                       <width>40</width>
-                       <height>40</height>
-                      </size>
-                     </property>
-                     <property name="toolTip">
-                      <string>Save selected tracks</string>
-                     </property>
-                     <property name="text">
-                      <string/>
-                     </property>
-                    </widget>
-                   </item>
                   </layout>
                  </item>
                 </layout>
@@ -340,6 +318,28 @@
                     </widget>
                    </item>
                    <item>
+                    <widget class="QPushButton" name="button_save">
+                     <property name="minimumSize">
+                      <size>
+                       <width>40</width>
+                       <height>40</height>
+                      </size>
+                     </property>
+                     <property name="maximumSize">
+                      <size>
+                       <width>40</width>
+                       <height>40</height>
+                      </size>
+                     </property>
+                     <property name="toolTip">
+                      <string>Save selected tracks</string>
+                     </property>
+                     <property name="text">
+                      <string/>
+                     </property>
+                    </widget>
+                   </item>
+                   <item>
                     <widget class="QPushButton" name="button_compile">
                      <property name="minimumSize">
                       <size>
@@ -358,6 +358,28 @@
                      </property>
                      <property name="toolTip">
                       <string>Merge saved files into single directory</string>
+                     </property>
+                     <property name="text">
+                      <string/>
+                     </property>
+                    </widget>
+                   </item>
+                   <item>
+                    <widget class="QPushButton" name="button_magic">
+                     <property name="minimumSize">
+                      <size>
+                       <width>40</width>
+                       <height>40</height>
+                      </size>
+                     </property>
+                     <property name="maximumSize">
+                      <size>
+                       <width>40</width>
+                       <height>40</height>
+                      </size>
+                     </property>
+                     <property name="toolTip">
+                      <string>Magic! Add your own feature here!</string>
                      </property>
                      <property name="text">
                       <string/>
