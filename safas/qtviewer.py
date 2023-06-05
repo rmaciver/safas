@@ -8,6 +8,7 @@ from PySide2.QtCore import Qt, QTimer
 import cv2
 import numpy as np
 
+from .app import RESOURCE_PATH
 from .prints import print_viewer as print
 
 class PhotoViewer(QtWidgets.QGraphicsView):
@@ -97,7 +98,6 @@ class PhotoViewer(QtWidgets.QGraphicsView):
             self.photoClicked.emit(self.mapToScene(event.pos()).toPoint())
         super(PhotoViewer, self).mousePressEvent(event)
 
-#class Viewer(PhotoViewer): 
 class Viewer(PhotoViewer): 
     status_update_signal = QtCore.Signal(str)
     frame_idx_change = QtCore.Signal(int)
@@ -130,9 +130,8 @@ class Viewer(PhotoViewer):
         qh.addWidget(self.slider)
         
         if layout is None: self.show()
-   
         try: 
-            fname = Path(parent.resource_path).joinpath("ui/tracking_plus_words.png")
+            fname = Path(RESOURCE_PATH).joinpath("ui/tracking_plus_words.png")
             image = cv2.imread(str(fname))
             self.update_frame({"raw_image": image, "frame_idx": 0, "objs_an": None, "tracks_an": None}) 
             time.sleep(0.1)
@@ -271,10 +270,8 @@ class Viewer(PhotoViewer):
             
         if filled: 
             myBrush = QtGui.QBrush(QtGui.QColor.fromRgb(*contour_color), Qt.SolidPattern)
-            #return self.viewer._scene.addPath(path, pen=myPen, brush=myBrush)
             return self._scene.addPath(path, pen=myPen, brush=myBrush)
         else: 
-            #return self.viewer._scene.addPath(path, pen=myPen)
             return self._scene.addPath(path, pen=myPen)
 
     @QtCore.Slot(int, int, bool)
@@ -321,14 +318,12 @@ class Viewer(PhotoViewer):
             if track_idx in self.annotations["tracks"]: # remove prev. QT item
                 item = self.annotations["tracks"][track_idx]
                 try: 
-                   # self.viewer._scene.removeItem(item["line_item"])
                    self._scene.removeItem(item["line_item"])
                 except Exception as e: 
                     print(f"{item['line_item']} not removed: {e}")
                 
                 for gpi in item['contour_item']: 
                     try: 
-                        #self.viewer._scene.removeItem(gpi)
                         self._scene.removeItem(gpi)
                     except Exception as e: 
                         print(f"gpi not removed: {e}")

@@ -31,6 +31,7 @@ from .labelers.edge_gradient import labeler as edge_gradient
 from .linkers.linear_flocs import linker as linear_flocs
 from .writers.sed_exp import writer as sed_exp
 
+from .app import RESOURCE_PATH
 labeler_modules = {"edge_gradient": edge_gradient,}
 linker_modules = {"linear_flocs": linear_flocs}
 writer_modules = {"sed_exp": sed_exp}
@@ -40,7 +41,7 @@ DEFAULT_CONFIG = {
     "auto_reload": True              
 }
 
-[os.makedirs(path, exist_ok=True) for path in ["ui", "config"]]
+[os.makedirs(path, exist_ok=True) for path in ["config"]]
 
 USE_QT = True
 
@@ -102,7 +103,7 @@ class Handler(QtCore.QObject):
         self.labeler = None
 
         try: 
-            config_file ="config/config.json"
+            config_file =Path(RESOURCE_PATH).joinpath("config/config.json")
             self.config = load_json(config_file) # config always stored here...
             print(f"Config loaded from {config_file}")
         except Exception as e: 
@@ -128,11 +129,11 @@ class Handler(QtCore.QObject):
             loc = self.config["output_path"]
        
         if user_params is None: 
-            user_params = self._load_p("config/_last_params.json")
+            user_params = self._load_p(Path(RESOURCE_PATH).joinpath("config/_last_params.json"))
             loc = "config/_last_params.json"
 
         if user_params is None: 
-            user_params = self._load_p("config/params.json")
+            user_params = self._load_p(Path(RESOURCE_PATH).joinpath("config/params.json"))
             loc = "config/params.json"
         
         if user_params is None: 
@@ -279,17 +280,17 @@ class Handler(QtCore.QObject):
         
         Parameters: 
         ----------
-        filter_name, str: name of filter to retreive
+            filter_name, str: name of filter to retreive
         
         Returns: 
         ----------
-        setup, function: called on filter setup (eg load required model)
-        filter, function: called during image processing
-        params_list, list: parameters for pg.ParameterTree and pg.Parameter    
+            setup, function: called on filter setup (eg load required model)
+            filter, function: called during image processing
+            params_list, list: parameters for pg.ParameterTree and pg.Parameter    
 
         Note:
         ----------
-        filter_name must have been loaded to filters globals during __init__ 
+            filter_name must have been loaded to filters globals during __init__ 
         """
         errors = dict()
         
@@ -609,7 +610,10 @@ class Handler(QtCore.QObject):
             print(f"writer kwargs not loaded from params: {e}")
         
         output_path = self.params[("io", "output_path")]
-        if (output_path is None) | (output_path == ""): output_path = "output" #default in module
+        if (output_path is None) | (output_path == ""): 
+            print(f"Please set the output_path before saving")
+            return False
+       
         os.makedirs(output_path, exist_ok=True)
         output_path = Path(output_path).joinpath(microtime())
         os.makedirs(output_path, exist_ok=True)
@@ -665,7 +669,9 @@ class Handler(QtCore.QObject):
         
         output_path = self.params[("io", "output_path")]
         if (output_path is None) | (output_path == ""): 
-            output_path = "output" #default in module
+            print(f"Please set the output_path before saving")
+            return False
+
         os.makedirs(output_path, exist_ok=True)
         output_path = Path(output_path).joinpath(microtime())
         os.makedirs(output_path, exist_ok=True)
@@ -689,7 +695,11 @@ class Handler(QtCore.QObject):
         lines = []
         # TODO: Move to writer module. merge is dependent on writer-specific formatting 
         output_path = self.params[("io", "output_path")]
-        if (output_path is None) | (output_path == ""): output_path = "output" 
+
+        if (output_path is None) | (output_path == ""): 
+            print(f"Please set the output_path before saving")
+            return False
+
         os.makedirs(output_path, exist_ok=True)
         output_path = Path(output_path).joinpath(f"{microtime()}-merged")
         os.makedirs(output_path, exist_ok=True)
