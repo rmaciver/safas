@@ -6,7 +6,7 @@ Safas is **s**edimentation **a**nd **f**loc **a**nalysis **s**oftware, a Python 
 
 This package permits the direct analysis of images and videos of flocs. Size, morphology and settling rate information may be measured from videos and saved in an easily accessible format.
 
-Outdated documentation for the installation and use of SAFAS v0.1.0 software may be found here: https://safas.readthedocs.io/en/latest/ (to be updated with release of SAFAS v1.0.0
+See https://safas.readthedocs.io/en/latest/ for documentation of the installation and use of SAFAS software.
 
 ## Why Safas?
 **Safas** is written in Python. It is open-source and the image filters are accessible and extensible. The image filters use functions from  and were designed and tested for segmenting and quantifying images of flocs.

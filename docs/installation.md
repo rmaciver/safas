@@ -8,32 +8,30 @@ For Windows 10 on x64-based PC, a package containing a pre-compiled binary can b
 Download the package and extract the archive. Locate the file "safas.exe" in the extracted directory. Double-click to run and you are now using Safas.
 
 ## Virtualenv
-The virtualenv package was used to make a virtual environment for Safas development with pip as the package manager. This was chosen due to the use of pip freeze to generate the compiled (safas.exe on Windows) version of the software. It should still be possible to run the project from Conda; however this is no longer the preferred method. 
+The virtualenv package was used to make a virtual environment for Safas development with pip as the package manager. This was chosen due to the use of pyinstaller to generate the compiled version of the software.
 
 Steps: 
-1. Install [virtualenv](https://virtualenv.pypa.io/en/latest/installation.html). Perhaps the easiest way is if you already have a Python interpreter installed is to use: 
+* Install [virtualenv](https://virtualenv.pypa.io/en/latest/installation.html). Perhaps the easiest way is if you already have a Python interpreter installed is to use: 
 ```
 python -m pip install --user virtualenv
 ```
-2. Open a console window inside the top-level project directory. Hint: In Windows you can type "cmd" in the address bar while in the project directory to open a console window there. 
 
-3. Create and activate the virtualenv. 
+* Open a console window inside the top-level project directory. Hint: In Windows you can type "cmd" in the address bar while in the project directory to open a console window there. 
+
+* Create and activate the virtualenv. 
 ```
 $ virtualenv venv
 $ .\venv\Scripts\activate
 (venv)$
 ```
-4. Install requirements.
+
+* Install requirements.
 ```
 (venv)$ pip install -r requirements.txt
 ```
-5. To install (optional): 
-```
-(venv)$ setup.py install
-```
-6. Run. 
-```
-(venv)$ safas
-```
 
+* Run. 
+```
+(venv)$ python app.py
+```
 
