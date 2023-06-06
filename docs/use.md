@@ -1,9 +1,34 @@
 # Use
 
+### User interface overview
+Safas loads in two windows: a command prompt (e.g. image in Figure 1), where all feedback on the commands and results are printed, and a window that contains parameters, control buttons, and a video display (Figure 2).
+
+<img align="center" src="../img/cli_capCapture.PNG" alt="cli-capture" width="400">
+
+*Fig. 1: CLI Window*
+
+The GUI main window of Safas has the following components: 
+
+* Parameters tab. Contains all settings for control, display, and analysis. The architecture of SAFAS is divided into "I/O", "Labeler", "Linker", "Writer" and "Display". This gives the user fine-grained control over how the analysis is conducted and how the results are presented. Each top-level label is a drop-down which gives access to all parameters in the group.
+
+* Track tab. This contains two lists (tracks and objects) which will display the active tracks and identified objects in the current frame. 
+
+* Viewer. The loaded video is displayed in the top right frame. 
+
+* Video Control. Located at the lower right. This allows the user to step the video forward or back and to toggle processing of images on/off. 
+
+* Tools. Simple tools for exporting data and saving configuration. 
+
+
+<img align="center" src="../img/Capture-main.PNG" alt="viewer" width="600">
+
+*Fig. 2: Main Window*
+
 ### Processing a floc sedimentation video
 Here is an overview of a workflow that can be used to process videos with SAFAS. This description considers the use of the software from the compiled safas.exe file in Windows.
 
 To start with, here are a few notes on the functionality that are helpful to keep in mind: 
+
 * The console window contains informative output about the state of the program and results of commands entered.
 
 * Set the "I/O, Input path" to the location you store your videos
@@ -35,11 +60,4 @@ To start with, here are a few notes on the functionality that are helpful to kee
 * It is possible to merge the outputs of multiple analyses using the "merge" button (two diskettes) in the "Tools" box below the image viewer. 
 
 
-### GUI overview
-The main window of SAFAS has four main features: 
 
-* Parameters tab. Contains all settings for control, display, and analysis. The architecture of SAFAS is divided into "I/O", "Labeler", "Linker", "Writer" and "Display". This gives the user fine-grained control over how the analysis is conducted and how the results are presented. Each top-level label is a drop-down which gives access to all parameters in the group.
-
-<img align="center" src="../img/Capture-main.PNG" alt="viewer" width="600">
-
-*Fig. 1: Main Window*
