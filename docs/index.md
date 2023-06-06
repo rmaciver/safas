@@ -2,7 +2,7 @@
 
 Safas is **s**edimentation **a**nd **f**loc **a**nalysis **s**oftware, a Python module for processing and interpretation of images and videos of flocs, a.k.a. aggregates, a.k.a. cohesive sediments.
 
-<img alt="mud floc sedimentation" src="../img/safas.jpg" width="300"/>
+<img alt="mud floc sedimentation" src="../img/safas.jpg" width="300">
 
 This package permits the direct analysis of images and videos of flocs. Size, morphology and settling rate information may be measured from videos and saved in an easily accessible format.
 
@@ -17,10 +17,10 @@ Outdated documentation for the installation and use of SAFAS v0.1.0 software may
 
 * **GPU-enabled.** Several filters in Safas are GPU-enabled, through OpenCV with OpenCL, if the software environment is configured correctly during installation.
 
-<img align="center" src="img/tracking.png" alt="floc tracks" width="600">
+<img align="center" src="../img/tracking.png" alt="floc tracks" width="400">
 
 *Fig. 1: Floc tracking.*
 
-<img align="center" src="img/vel_size.png" alt="floc stats" width="600">
+<img align="center" src="../img/vel_size.png" alt="floc stats" width="400">
 
 *Fig. 2: Floc statistics.*
