@@ -8,7 +8,7 @@ from PySide2.QtCore import Qt, QTimer
 import cv2
 import numpy as np
 
-from .app import RESOURCE_PATH
+#from .app import RESOURCE_PATH
 from .prints import print_viewer as print
 
 class PhotoViewer(QtWidgets.QGraphicsView):
@@ -131,7 +131,7 @@ class Viewer(PhotoViewer):
         
         if layout is None: self.show()
         try: 
-            fname = Path(RESOURCE_PATH).joinpath("ui/tracking_plus_words.png")
+            fname = Path(self.parent.resource_path).joinpath("ui/tracking_plus_words.png")
             image = cv2.imread(str(fname))
             self.update_frame({"raw_image": image, "frame_idx": 0, "objs_an": None, "tracks_an": None}) 
             time.sleep(0.1)

@@ -11,12 +11,8 @@ from pathlib import Path
 from datetime import datetime
 import functools
 import os
-sys.path.append(os.getcwd()) # hack for development
+#sys.path.append(os.getcwd()) # hack for development
 from PySide2 import QtWidgets, QtCore, QtGui
-
-global RESOURCE_PATH
-
-RESOURCE_PATH = str(Path(__file__).absolute().parents[0])
 
 from safas.prints import print_app as print
 from safas import loader_util, handler, qtparams, qtviewer
@@ -28,8 +24,8 @@ class MainWindow(QtWidgets.QMainWindow):
     def __init__(self):
         super().__init__()
         try: 
-            print(f"Resource path set to: {RESOURCE_PATH}")
-            ui_file = str(Path(RESOURCE_PATH).joinpath("ui/main.ui")) # load ui
+            self.resource_path = str(Path(__file__).absolute().parents[0])
+            ui_file = str(Path(self.resource_path).joinpath("ui/main.ui")) # load ui
             loader_util.loadUi(ui_file, self)
         except Exception as e: 
             print(f"ui not loaded: {e}", error=True)
@@ -212,7 +208,7 @@ class MainWindow(QtWidgets.QMainWindow):
         ]
         
         for b, ic in zip(buttons, icons): 
-            icon = QtGui.QIcon(str(Path(RESOURCE_PATH).joinpath(ic)))
+            icon = QtGui.QIcon(str(Path(self.resource_path).joinpath(ic)))
             button = getattr(self, b)
             button.setIcon(icon)
             try: # ensure not already connected
@@ -403,7 +399,7 @@ class TrackTab(QtCore.QObject):
 if __name__ == "__main__": 
     # entry point
     app = QtWidgets.QApplication(sys.argv)
-    ico = QtGui.QIcon(str(Path(RESOURCE_PATH).joinpath("ui/s.ico")))
+    ico = QtGui.QIcon("ui/s.ico")
     ret = app.setWindowIcon(ico)
     window = MainWindow() 
     window.show()

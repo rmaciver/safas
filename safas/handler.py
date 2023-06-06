@@ -30,7 +30,6 @@ from .labelers.edge_gradient import labeler as edge_gradient
 from .linkers.linear_flocs import linker as linear_flocs
 from .writers.sed_exp import writer as sed_exp
 
-from .app import RESOURCE_PATH
 labeler_modules = {"edge_gradient": edge_gradient,}
 linker_modules = {"linear_flocs": linear_flocs}
 writer_modules = {"sed_exp": sed_exp}
@@ -97,7 +96,7 @@ class Handler(QtCore.QObject):
         self.labeler = None
 
         try: 
-            config_file =Path(RESOURCE_PATH).joinpath("config/config.json")
+            config_file = "config/config.json"
             self.config = load_json(config_file) # config always stored here...
             print(f"Config loaded from {config_file}")
         except Exception as e: 
@@ -123,11 +122,11 @@ class Handler(QtCore.QObject):
             loc = self.config["output_path"]
        
         if user_params is None: 
-            user_params = self._load_p(Path(RESOURCE_PATH).joinpath("config/_last_params.json"))
+            user_params = self._load_p("config/_last_params.json")
             loc = "config/_last_params.json"
 
         if user_params is None: 
-            user_params = self._load_p(Path(RESOURCE_PATH).joinpath("config/params.json"))
+            user_params = self._load_p("config/params.json")
             loc = "config/params.json"
         
         if user_params is None: 
@@ -782,7 +781,7 @@ class Handler(QtCore.QObject):
         
     def write_config(self): 
         try: 
-            filename = Path(RESOURCE_PATH).joinpath("config/config.json")
+            filename = "config/config.json"
             with open(filename, "w") as f: json.dump(self.config, f)
             print(f"[cyan]Config[/cyan] written to {filename}")
         except Exception as e: 
