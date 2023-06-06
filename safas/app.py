@@ -15,6 +15,7 @@ sys.path.append(os.getcwd()) # hack for development
 from PySide2 import QtWidgets, QtCore, QtGui
 
 global RESOURCE_PATH
+
 RESOURCE_PATH = str(Path(__file__).absolute().parents[0])
 
 from safas.prints import print_app as print
@@ -399,13 +400,11 @@ class TrackTab(QtCore.QObject):
         track_idx = int(track_idx.text())
         self.ui_add_tracks_signal.emit(self.frame_idx, track_idx, True)
 
-def timestamp(): return datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
-
-
 if __name__ == "__main__": 
     # entry point
     app = QtWidgets.QApplication(sys.argv)
-    app.setWindowIcon(QtGui.QIcon('ui/s.ico'))
+    ico = QtGui.QIcon(str(Path(RESOURCE_PATH).joinpath("ui/s.ico")))
+    ret = app.setWindowIcon(ico)
     window = MainWindow() 
     window.show()
     app.exec_()

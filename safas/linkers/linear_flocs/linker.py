@@ -100,7 +100,7 @@ def _match_obj_in_frame(obj, objs,
                 ): 
     """ """    
     if dist_max_filt: 
-        dist_max = dist_max_filt_m + obj["obj_area"]**dist_max_filt_k
+        dist_max = dist_max_filt_m*obj["obj_area"]**dist_max_filt_k
         to_remove = []
         for obj_idx in objs: 
             obj_a = obj["obj_centroid"]

@@ -5,10 +5,10 @@ block_cipher = None
 
 
 a = Analysis(
-    ['safas/app.py'],
+    ['safas\\app.py'],
     pathex=[],
     binaries=[],
-    datas=[("ui", "ui"), ("config","config")],
+    datas=[("safas\\ui", "ui"), ("safas\\config","config")],
     hiddenimports=[],
     hookspath=[],
     hooksconfig={},

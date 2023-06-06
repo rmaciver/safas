@@ -66,6 +66,14 @@ PARAMS = [
 
         ]
     },
+    {'name': 'merge', "title": "Merge", 'type': 'group', 
+'children': 
+     [{'name': 'merge_summary_files', 'type': 'bool', 'value': True},
+      {'name': 'merge_full_output_files', 'type': 'bool', 'value': True},
+      {'name': 'merge_obj_images', 'type': 'bool', 'value': True},
+      {'name': 'merge_frames', 'type': 'bool', 'value': True},
+    ]
+},
 ]
 },
 {'name': 'display', "title": "Display", 'type': 'group', 
@@ -87,15 +95,8 @@ PARAMS = [
       {'name': 'line_linewidth', 'type': 'float', 'value': 0.25, "limits": [0.1, 10]}
     ]}
 ]
-},
-{'name': 'merge', "title": "Merge", 'type': 'group', 
-'children': 
-     [{'name': 'merge_summary_files', 'type': 'bool', 'value': True},
-      {'name': 'merge_full_output_files', 'type': 'bool', 'value': True},
-      {'name': 'merge_obj_images', 'type': 'bool', 'value': True},
-      {'name': 'merge_frames', 'type': 'bool', 'value': True},
-    ]
-},
+}
+
     
 ]     
 

@@ -3,17 +3,17 @@
     "params_file": "params.json",
     "input_path": null,
     "output_path": null,
-    "data_file": "C:\\Users\\rmcma\\data-phd\\2019_TUD_floc_data\\raw\\2019-12-11_PoH_data\\part2_RV2-RT2-KH2\\003_reinerstieg_vornafen_26-9-19_00.avi",
-    "process_on_new_frame": false,
-    "process_n_frames": true,
-    "n_frames": 50,
+    "data_file": null,  
+    "process_on_new_frame": true,
+    "process_n_frames": false, 
+    "n_frames": 10,
     "n_threads": 6
   },
   "labeler": {
     "common": {
       "params_file": null,
       "name": "edge_gradient",
-      "process": true
+      "process": false
     },
     "kwargs": {
       "thresh_inv": true,
@@ -30,18 +30,18 @@
     "common": {
       "params_file": null,
       "name": "linear_flocs",
-      "process": true,
-      "obj-select-mode": "auto"
+      "process": false,
+      "obj-select-mode": "manual"
     },
     "kwargs": {
       "dist_max_filt": true,
-      "dist_max_filt_m": 200.0,
+      "dist_max_filt_m": 2.0,
       "dist_max_filt_k": 1.25,
       "dist_wt": 1.0,
-      "dist_square": true,
+      "dist_square": false,
       "area_wt": 1.0,
-      "area_square": true,
-      "error_threshold": 1000.0
+      "area_square": false,
+      "error_threshold": 100
     }
   },
   "writer": {
@@ -49,13 +49,22 @@
       "params_file": null,
       "name": "sed_exp"
     },
+    "merge": {
+      "merge_summary_files": true,
+      "merge_full_output_files": true,
+      "merge_obj_images": true,
+      "merge_frames": true
+    },
     "kwargs": {
-      "save_frames": true,
-      "save_obj_image": true,
-      "max_angle_dev": 30.0,
+      "save_frames": false,
+      "save_obj_image": false,
+      "save_summary": true,
+      "save_full_output": true,
+      "max_track_angle": 30.0,
       "min_frames_per_track": 5,
-      "clear_tracks_on_save": true,
-      "clear_objs_on_save": true,
+      "join_discont_tracks": false,
+      "clear_tracks_on_save": false,
+      "clear_objs_on_save": false,
       "px_um_cal": 8.6
     }
   },
@@ -79,10 +88,10 @@
     "tracks": {
       "show_objs": true,
       "contour_color": [
-        202,
-        97,
+        147,
+        250,
         255,
-        50
+        125
       ],
       "contour_linewidth": 0.25,
       "contour_color_active": [

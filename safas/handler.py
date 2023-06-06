@@ -23,7 +23,6 @@ import flatten_dict
 import rich
 from rich import progress
 
-# safas modules
 from .prints import print_handler as print
 from . import labeler_worker
 
@@ -36,13 +35,7 @@ labeler_modules = {"edge_gradient": edge_gradient,}
 linker_modules = {"linear_flocs": linear_flocs}
 writer_modules = {"sed_exp": sed_exp}
 
-DEFAULT_CONFIG = {
-    "output_path": None,
-    "auto_reload": True              
-}
-
-[os.makedirs(path, exist_ok=True) for path in ["config"]]
-
+DEFAULT_CONFIG = {"output_path": None, "auto_reload": True}
 USE_QT = True
 
 from PySide2 import QtCore
@@ -600,7 +593,7 @@ class Handler(QtCore.QObject):
                 item = {"obj_contour": self.objs[frame_idx][obj_idx]["obj_contour"]}
                 objs_an["objs"][obj_idx] = item
         return objs_an
-    
+  
     def save_tracks(self): 
         if self.cap is None: 
             print(f"[cyan]Source[/cyan] not loaded", warning=True)   
@@ -620,7 +613,7 @@ class Handler(QtCore.QObject):
         output_path = Path(output_path).joinpath(microtime())
         os.makedirs(output_path, exist_ok=True)
 
-        self.tracks, self.objs = self.writer.func(output_path, tracks=self.tracks, objs=self.objs, cap=self.cap, **writer_kwargs)
+        self.tracks, self.objs, dft, dfx = self.writer.func(output_path, tracks=self.tracks, objs=self.objs, cap=self.cap, **writer_kwargs)
         
         clear_objs = writer_kwargs["clear_objs_on_save"]
         clear_tracks = writer_kwargs["clear_tracks_on_save"]
@@ -707,7 +700,7 @@ class Handler(QtCore.QObject):
         os.makedirs(output_path, exist_ok=True)
         print(f"Compiling outputs")
 
-        if self.params[("merge","merge_summary_files")]: 
+        if self.params[("writer","merge","merge_summary_files")]: 
             files = []
             for path in paths: 
                 try: 
@@ -727,7 +720,7 @@ class Handler(QtCore.QObject):
 
             print(f"summary output: {len(df)} rows from {len(files)} files saved to {Path(filename).name}")
 
-        if self.params[("merge","merge_full_output_files")]: 
+        if self.params[("writer","merge","merge_full_output_files")]: 
             files = []
             for path in paths: 
                 try: 
@@ -746,7 +739,7 @@ class Handler(QtCore.QObject):
             df.to_csv(filename)
             print(f"full output: {len(df)} lines from {len(files)} files saved to {Path(filename).name}")
 
-        if self.params[("merge","merge_obj_images")]: 
+        if self.params[("writer","merge","merge_obj_images")]: 
             path = Path(output_path).joinpath("objs")
             os.makedirs(path, exist_ok=True)
             files = []
@@ -756,7 +749,7 @@ class Handler(QtCore.QObject):
             [shutil.copy(file, str(Path(output_path).joinpath("objs").joinpath(str(Path(file).name)))) for file in files]      
             print(f"object images: copied {len(files)} images")
             
-        if self.params[("merge","merge_frames")]:
+        if self.params[("writer","merge","merge_frames")]:
             path = Path(output_path).joinpath("frames")
             os.makedirs(path, exist_ok=True)
             files = dict()
@@ -789,7 +782,7 @@ class Handler(QtCore.QObject):
         
     def write_config(self): 
         try: 
-            filename = "config/config.json"
+            filename = Path(RESOURCE_PATH).joinpath("config/config.json")
             with open(filename, "w") as f: json.dump(self.config, f)
             print(f"[cyan]Config[/cyan] written to {filename}")
         except Exception as e: 

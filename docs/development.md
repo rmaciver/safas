@@ -1,16 +1,26 @@
 # Development
 
+Additional dependencies:
+```
+pyinstaller
+```
 
-# activate venv
+Activate venv: 
+```
 venv\Scripts\activate
-
-# build requirements.txt file
-pip-compile --output-file=- > requirements.txt
-
+```
+Build requirements.txt file: 
+```
+(venv)$ pip-compile --output-file=- > requirements.txt
+```
 # Compiling to exe on windows
 https://www.pythonguis.com/tutorials/packaging-pyside2-applications-windows-pyinstaller/
-pyinstaller --noconfirm --name "safas" app.py
 
-then
-
+To run first build and generate spec file: 
+```
+pyinstaller --noconfirm --name "safas" safas/app.py
+```
+then run with that spec file (need to add ui and config files): 
+```
 pyinstaller safas.spec --noconfirm
+```
