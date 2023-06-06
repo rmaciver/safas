@@ -3,7 +3,7 @@
 ### User interface overview
 Safas loads in two windows: a command prompt (e.g. image in Figure 1), where all feedback on the commands and results are printed, and a window that contains parameters, control buttons, and a video display (Figure 2).
 
-<img align="center" src="/img/cli_capCapture.PNG" alt="cli-capture" width="300">
+<img align="center" src="../img/cli_capCapture.PNG" alt="cli-capture" width="300">
 
 *Fig. 1: CLI Window*
 
@@ -20,7 +20,7 @@ The GUI main window of Safas has the following components:
 * **Tools.** Simple tools for exporting data and saving configuration. 
 
 
-<img align="center" src="/img/Capture-main.PNG" alt="viewer" width="400">
+<img align="center" src="../img/Capture-main.PNG" alt="viewer" width="400">
 
 *Fig. 2: Main Window*
 
