@@ -394,7 +394,7 @@ class Handler(QtCore.QObject):
         if process_n_frames:  
             n_frames = self.params[("io", "n_frames")] 
             x1, x2 = image_index, image_index + n_frames -1 
-            x2 = min(x2, int(self.cap.get(cv2.CAP_PROP_FRAME_COUNT)))
+            x2 = min(x2, int(self.cap.get(cv2.CAP_PROP_FRAME_COUNT))-1)
             n_threads = multiprocessing.cpu_count() - 1 
         elif process_on_new_frame: 
             n_frames = 1

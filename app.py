@@ -221,10 +221,15 @@ class MainWindow(QtWidgets.QMainWindow):
         """ """ 
         self.params.p.param("labeler","common","process").setValue(False)
         self.params.p.param("linker","common","process").setValue(False)
+        
+        w, h, fps, frame_count = self.handler.get_video_frame_details(self.handler.cap)
+
         self.viewer.inc_video_index(-1)
     
-    def step_forward(self): self.viewer.inc_video_index(1)
-    def reprocess(self): self.handler.relabel_frame()
+    def step_forward(self): 
+        self.viewer.inc_video_index(1)
+    def reprocess(self): 
+        self.handler.relabel_frame()
     def save(self): self.handler.save_tracks()
     def magic(self): 
         print(f"Magic! Add your own feature here!")
