@@ -111,13 +111,17 @@ def writer(output_path, tracks, objs, cap,
                 obj_item ={"track_idx": track_idx, "frame_idx": frame_idx, "obj_idx": obj_idx, "bbox": bbox}
                 frame_items[track_uuid] = obj_item
             
-            if len(contour) >= 5: 
-                ellipse = cv2.fitEllipse(tracks[key]["obj_contour"])
-                (xc,yc),(major_axis, minor_axis), angle = ellipse
-            else: 
-                # cannot calculate fitEllipse when contour is < 5
-                major_axis = max(tracks[key]["obj_bbox"][2:])
-                minor_axis = min(tracks[key]["obj_bbox"][2:])
+            w, h = tracks[key]["obj_bbox"][2:]
+            try: 
+                (xm,ym),(ma,mi),angle = cv2.fitEllipse(tracks[key]["obj_contour"])
+                major_axis = max(ma,mi)
+                minor_axis = min(ma,mi)
+            except: 
+                major_axis = max(w,h)
+                minor_axis = min(w,h)
+            
+            if not np.isfinite(major_axis): major_axis = max(w,h)
+            if not np.isfinite(minor_axis): minor_axis = min(w,h)
 
             match_error = tracks[key]["match_error"]
 

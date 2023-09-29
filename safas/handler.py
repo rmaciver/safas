@@ -30,11 +30,21 @@ from .labelers.edge_gradient import labeler as edge_gradient
 from .linkers.linear_flocs import linker as linear_flocs
 from .writers.sed_exp import writer as sed_exp
 
-labeler_modules = {"edge_gradient": edge_gradient,}
-linker_modules = {"linear_flocs": linear_flocs}
-writer_modules = {"sed_exp": sed_exp}
+labeler_modules = {
+    "edge_gradient": edge_gradient,
+}
+linker_modules = {
+    "linear_flocs": linear_flocs,
+}
+writer_modules = {
+    "sed_exp": sed_exp
+}
 
-DEFAULT_CONFIG = {"output_path": None, "auto_reload": True}
+DEFAULT_CONFIG = {
+    "output_path": None, 
+    "auto_reload": True
+}
+
 USE_QT = True
 
 from PySide2 import QtCore
@@ -167,7 +177,6 @@ class Handler(QtCore.QObject):
         
     def load_source(self, data_file=None, display=False, **kwargs): 
         """ load data source"""
-        
         if data_file is None:
             try:  
                 data_file = self.params[("io","data_file")]
@@ -187,12 +196,24 @@ class Handler(QtCore.QObject):
 
         if (data_file is None) | (data_file == "") | (data_file == 0): 
             self.qt_interactor.ui_video_loaded_signal.emit(False)
+            self.params[("io","data_file")] = ""
             print(f"[cyan]Source[/cyan] No data file selected")
             return None
         
-        supported = ['video/x-msvideo']  #TODO: decide which loader to used based on file content
-        kind = filetype.guess(data_file)
-
+        # TODO: decide which loader to used based on file content
+        # TODO: permit other video types, file sequence, single images
+        supported = [
+            'video/x-msvideo', 
+        ]  
+        
+        try:
+            kind = filetype.guess(data_file)
+        except FileNotFoundError as e: 
+            print(f'[cyan]Source[/cyan] does not exist: {data_file}')
+            self.qt_interactor.ui_video_loaded_signal.emit(False)
+            self.params[("io","data_file")] = ""
+            return None
+        
         if kind is None:
             print(f'[cyan]Source[/cyan] cannot determine file type of {data_file}')
             self.qt_interactor.ui_video_loaded_signal.emit(False)
@@ -202,6 +223,7 @@ class Handler(QtCore.QObject):
             if kind.mime == "video/x-msvideo": 
                 self.cap = load_video(data_file)
                 width, height, fps, frame_count = get_video_frame_details(self.cap) 
+
                 if USE_QT: 
                     try: 
                         self.qt_interactor.frame_count_signal.emit(0, frame_count)

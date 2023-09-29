@@ -7,7 +7,7 @@
     "process_on_new_frame": true,
     "process_n_frames": false, 
     "n_frames": 10,
-    "n_threads": 6
+    "n_threads": 10
   },
   "labeler": {
     "common": {
@@ -16,7 +16,7 @@
       "process": false
     },
     "kwargs": {
-      "thresh_inv": true,
+      "brightfield": true,
       "thresh_val": 120.0,
       "apply_grad_filter": false,
       "grad_thresh_val": 30,
@@ -41,7 +41,7 @@
       "dist_square": false,
       "area_wt": 1.0,
       "area_square": false,
-      "error_threshold": 100
+      "error_threshold": 10000
     }
   },
   "writer": {
@@ -57,10 +57,10 @@
     },
     "kwargs": {
       "save_frames": false,
-      "save_obj_image": false,
+      "save_obj_image": true,
       "save_summary": true,
       "save_full_output": true,
-      "max_track_angle": 30.0,
+      "max_track_angle": 20.0,
       "min_frames_per_track": 5,
       "join_discont_tracks": false,
       "clear_tracks_on_save": false,

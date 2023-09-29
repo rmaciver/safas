@@ -3,7 +3,7 @@ safas/linkers/linear_flocs/linker
 
 The linker matches objects in a series of images.
 The track formed is a list of objects. 
-The linker algorithm is separate from the track management.
+The linker algorithm is separate from track management.
 Simple data structures (lists, dict) are preferred to classes. 
 Functions that transform the data structures are preferred to class attributes.
 Start with the simple case of matching by size and distance. 

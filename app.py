@@ -222,7 +222,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.params.p.param("labeler","common","process").setValue(False)
         self.params.p.param("linker","common","process").setValue(False)
         
-        w, h, fps, frame_count = self.handler.get_video_frame_details(self.handler.cap)
+        #w, h, fps, frame_count = self.handler.get_video_frame_details(self.handler.cap)
 
         self.viewer.inc_video_index(-1)
     
