@@ -219,6 +219,7 @@ class Viewer(PhotoViewer):
         objs_an = self.parent.handler.build_obj_an(frame_idx, obj_idxs)
 
         for obj_idx in obj_idxs: 
+            # TODO: add option to color onj with no contour by image mask
             contour = objs_an["objs"][obj_idx]["obj_contour"]
             c_kwargs = objs_an["kwargs"]
             
@@ -339,7 +340,7 @@ class Viewer(PhotoViewer):
         line_item = self.add_contour(cents, closed=False, filled=False, **line_kwargs)
         # ---- outline contours for all objects in track
         contour_kwargs = dict((k, track_kwargs[k]) for k in contour_keys)
-        contour_item = []
+        contour_item = list()
         for ctr in contour: 
             ci = self.add_contour(ctr, **contour_kwargs)
             contour_item.append(ci)

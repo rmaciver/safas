@@ -21,9 +21,11 @@ def _load(f):
     filename = Path(data_dir).joinpath(f)
     return cv2.imread(str(filename))
 
-def noisy(): return _load("noisy.png")
+def brightfield_flocs(): return _load("brightfield_flocs.png")
+    
+def darkfield_noisy_mudflocs(): return _load("darkfield_noisy_mudflocs.png")
 
-def mudflocs():
+def darkfield_lowgray_mudflocs():
     """Gray-level "mudflocs" image.
     Example image of mud flocs in settling colum.
     Higher number density
@@ -32,7 +34,7 @@ def mudflocs():
     camera : (1000, 1000, 3) uint8 ndarray
         Mudflocs image.
     """
-    return _load("mudflocs.png")
+    return _load("darkfield_lowgray_mudflocs.png")
 
 def clayflocs():
     """Gray-level "clayflocs" image.
@@ -45,7 +47,7 @@ def clayflocs():
     """
     return _load("clayflocs.png")
 
-def brightmudflocs():
+def darkfield_highgray_mudflocs():
     """Gray-level "clayflocs" image.
     Example image of clay flocs in settling colum.
     Brighter light source w. mean approx. 225 on uint8 scale
@@ -55,7 +57,7 @@ def brightmudflocs():
     camera : (1000, 1000, 3) uint8 ndarray
         brightmudflocs image.
     """
-    return _load("brightmudflocs.png")
+    return _load("darkfield_highgray_mudflocs.png")
 
 def clearfloc():
     """Gray-level "clearfloc" image.
@@ -68,7 +70,7 @@ def clearfloc():
     """
     return _load("clearfloc.png")
 
-def noisyfloc():
+def darkfield_noisy_mudflocs():
     """Gray-level "noisyfloc" image.
     Example image of a single mud floc with a noisy background.
 
@@ -77,7 +79,7 @@ def noisyfloc():
     camera : (512, 512, 3) uint8 ndarray
         noisyfloc image.
     """
-    return _load("noisyfloc.png")
+    return _load("darkfield_noisy_mudflocs.png")
 
 def por_flocs():
     """ results from video measurement of the POR sample

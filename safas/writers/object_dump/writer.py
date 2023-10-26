@@ -76,9 +76,10 @@ def writer(output_path, tracks, objs, cap,
     #           underlying data structure.
 
     # TODO: split "analyze" and "write" functions to allow display and further interrogation of the data
-
-    if len(tracks) == 0: 
-        print(f"No tracks to save.")
+    import pdb; pdb.set_trace()
+    
+    if len(objs) == 0: 
+        print(f"No objects to save.")
         return tracks, objs
     
     fps = float(cap.get(cv2.CAP_PROP_FPS))

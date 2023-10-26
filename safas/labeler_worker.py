@@ -47,7 +47,7 @@ def _consumer(q_in, q_out, labeler_func, labeler_kwargs):
         if frame_idx is None: 
             q_in.put((None, None)) 
             return   
-        objs_f = labeler_func(frame, frame_idx=frame_idx, **labeler_kwargs)
+        objs_f, _, _ = labeler_func(frame, frame_idx=frame_idx, **labeler_kwargs)
         q_out.put((frame_idx, objs_f))
 
 def _monitor(q_out, n_frames, objs): 
