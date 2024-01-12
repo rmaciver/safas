@@ -483,7 +483,7 @@ class Handler(QtCore.QObject):
                                                     frame_idx=frame_idx, 
                                                     n_frames=x2-x1, 
                                                     obj_selection=obj_selection,
-                                                    **linker_kwargs) 
+                                                    linker_kwargs=linker_kwargs) 
         
         if display_table:  
             table = rich.table.Table(title="Active tracks per image")

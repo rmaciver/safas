@@ -3,10 +3,10 @@
     "params_file": "params.json",
     "input_path": null,
     "output_path": null,
-    "data_file": "C:\\Users\\rmcma\\data-ce\\2023-09-27 RBINS test images\\RBINS test images.avi",
-    "process_on_new_frame": true,
-    "process_n_frames": false,
-    "n_frames": 10,
+    "data_file": "C:\\Users\\rmcma\\Desktop\\TestForRyan\\TestForRyan.avi",
+    "process_on_new_frame": false,
+    "process_n_frames": true,
+    "n_frames": 5,
     "n_threads": 10
   },
   "labeler": {
@@ -16,8 +16,8 @@
       "process": false
     },
     "kwargs": {
-      "brightfield": true,
-      "thresh_val": 30.0,
+      "brightfield": false,
+      "thresh_val": 100.0,
       "apply_grad_filter": false,
       "grad_thresh_val": 30,
       "apply_min_px_filter": true,
