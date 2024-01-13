@@ -340,12 +340,20 @@ class Handler(QtCore.QObject):
         if self.cap is None: 
             print(f"[cyan]Source[/cyan] not loaded", warning=True)   
             return None
-
+        # check frame_idx
+        if frame_idx > (int(self.cap.get(cv2.CAP_PROP_FRAME_COUNT))-1): 
+            print(f"End of file", warning = True)
+            return None
+        
         process_on_new_frame = self.params[("io","process_on_new_frame")]
         process_n_frames = self.params[("io", "process_n_frames")]
 
         if process_on_new_frame & process_n_frames: 
             raise ValueError("Only one of process_on_new_frame or process_n_frames can be true")    
+        # if linker is on, then labeller must be on
+        if self.params[('linker','common','process')] & (not self.params[('labeler','common','process')]): 
+            print("Cannot run linker if Labeler is not active. Setting Labeler, Common, Process = True", warning=True)
+            self.params[('labeler','common','process')] = True
 
         if self.params[('labeler','common','process')] & (self.labeler is not None): 
             try: 
@@ -382,11 +390,13 @@ class Handler(QtCore.QObject):
 
         tracks_an = self.build_tracks_an(vi)     
         objs_an = self.build_obj_an(vi)
-     
+
+
         self.latest_frame = {"raw_image": image, "objs_an": objs_an, "tracks_an": tracks_an, "frame_idx": vi}
         
         if USE_QT: 
             try: 
+
                 self.qt_interactor.frame_ready_signal.emit(self.latest_frame) # TODO: may optimize with a queue
             except Exception as e:  
                 print(f"Did not emit frame via frame_read_signal: {e}")
@@ -415,9 +425,12 @@ class Handler(QtCore.QObject):
         
         if process_n_frames:  
             n_frames = self.params[("io", "n_frames")] 
-            x1, x2 = image_index, image_index + n_frames -1 
+            x1, x2 = image_index, image_index + n_frames - 1 
+            # CAP_PROP_FRAME_COUNT - total frames, last index is -1
             x2 = min(x2, int(self.cap.get(cv2.CAP_PROP_FRAME_COUNT))-1)
-            n_threads = multiprocessing.cpu_count() - 1 
+            n_frames = x2 - x1 + 1
+            # max 1 thread per image
+            n_threads = min(n_frames, multiprocessing.cpu_count() - 1)
         elif process_on_new_frame: 
             n_frames = 1
             x1, x2 = image_index, image_index
@@ -667,6 +680,7 @@ class Handler(QtCore.QObject):
         if func is not None: func() # TODO: permit passing args and kwargs
    
         if frame_idx is None: frame_idx = self.latest_frame["frame_idx"]
+        
         self.build_frame(frame_idx)
         
         self.params[('labeler','common','process')] = la_rev # revert processing values
@@ -808,7 +822,8 @@ class Handler(QtCore.QObject):
             print(f"[cyan]Config[/cyan] written to {filename}")
         except Exception as e: 
             print(f"Config not written {Path(filename).name}: {e}", error=True)
-    
+
+
 def microtime()->str: return datetime.now().strftime("%Y-%m-%d-%H-%M-%SS.%f")
 
 def load_json(filename, display_params=False): 

@@ -22,7 +22,7 @@ import numpy as np
 from matplotlib import pyplot as plt
 from rich import progress
 
-PRINT_OBJ_INFO_FLAG = True
+PRINT_OBJ_INFO_FLAG = False
 
 params = {
     "name": "kwargs", 
@@ -80,42 +80,22 @@ def linker(tracks, objs, frame_idx, n_frames, obj_selection="none", linker_kwarg
         next_track_idx = max(list(set([key[0] for key in list(tracks)]))) + 1
 
     for f_idx in progress.track(range(frame_idx, frame_idx+n_frames), description="[green] Linking objects", total=n_frames): 
-        # tracks existing in prev. frame
-        track_idxs = [key[0] for key in tracks if (key[1]==(f_idx-1))] 
-        # match to objs in current frame: 
-        if PRINT_OBJ_INFO_FLAG: 
-            print(f"Tracks in current frame: {track_idxs}")
+ 
+        track_idxs = [key[0] for key in tracks if (key[1]==(f_idx-1))]  # tracks existing in prev. frame
+        if len(objs[f_idx])==0: # not objects in frame
+            continue 
+
         for track_idx in track_idxs: 
             obj = tracks[(track_idx, f_idx-1)] # get last obj added to the track
-            keys = ['track_idx','frame_idx', 'obj_area', 'obj_centroid']
-
-            objs_current = objs[f_idx]
-           
-            if PRINT_OBJ_INFO_FLAG: 
-                print(f"Last object added to track {track_idx} in previous frame:")
-                print(f"\tObject with obj_idx: {obj['obj_idx']}:")
-                for key in keys: 
-                    print(f"\t{key}: {obj[key]}")
-                print(f"{len(objs_current)} objects in current frame:")          
-            for idx in objs_current: 
-                print(f"\tObject with obj_idx: {objs[f_idx][idx]['obj_idx']}:")
-                for key in keys: 
-                    print(f"\t{key}: {objs[f_idx][idx][key]}")
             obj_idx, match_error = _match_obj_in_frame(obj, deepcopy(objs[f_idx]), linker_params=linker_params) # match obj this frame
             
-            if PRINT_OBJ_INFO_FLAG: 
-                if obj_idx is not None: 
-                    print(f"Matched obj_idx: {obj_idx} with match_error: {match_error}")
-                else: 
-                    print(f"No object matched with obj_idx: {obj['obj_idx']}")
-                    
             if obj_idx is not None:  
                 obj_n = objs[f_idx][obj_idx]
                 obj_n["track_idx"] = track_idx
                 obj_n["match_error"] = match_error
                 tracks[(track_idx, f_idx)] = obj_n # add matched object to the track
                 objs[f_idx].pop(obj_idx) # remove this obj from objs  
-            # else: no match, track is terminate
+            # else: no match, track is terminated
             
         # NOTE: integrate new object selection with linker so objects from f_idx may be linked in f_idx + 1
         if obj_selection == "auto": 
@@ -135,10 +115,6 @@ def obj_selection_auto(objs):
     return list(objs)
 
 def _match_obj_in_frame(obj, objs, linker_params): 
-                # dist_max_filt=True, dist_max_filt_m=200, dist_max_filt_k=1.25,
-                # dist_wt=1, dist_square=True, 
-                # area_wt=1, area_square=True,
-                # error_threshold=1e3):
     """ """  
     if linker_params is None: linker_params = LinkerParams() # apply the defaults
     
@@ -158,7 +134,9 @@ def _match_obj_in_frame(obj, objs, linker_params):
     dists = np.array([np.linalg.norm(objs[obj_idx]["obj_centroid"] - obj["obj_centroid"]) for obj_idx in objs])
     areas = np.array([objs[obj_idx]["obj_area"] - obj["obj_area"] for obj_idx in objs])
     obj_idxs = np.array(list(objs))
+    
     if PRINT_OBJ_INFO_FLAG: print(f"Dists: {dists}, Areas: {areas}")
+    
     dists = dists*linker_params.dist_wt
     areas = areas*linker_params.area_wt
     
@@ -166,8 +144,12 @@ def _match_obj_in_frame(obj, objs, linker_params):
     if linker_params.area_square: areas = areas**2
     
     error = dists + areas
-    if PRINT_OBJ_INFO_FLAG: print(f"Error: {error} (threshold={linker_params.error_threshold})")
+    
+    if PRINT_OBJ_INFO_FLAG: 
+        print(f"Error: {error} (threshold={linker_params.error_threshold})")
+    
     idx_min = np.argmin(error)
+    
     if error[idx_min] < linker_params.error_threshold: 
         return obj_idxs[idx_min], error[idx_min]
     else: 

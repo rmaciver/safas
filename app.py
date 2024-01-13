@@ -225,9 +225,11 @@ class MainWindow(QtWidgets.QMainWindow):
     
     def step_forward(self): 
         self.viewer.inc_video_index(1)
-    def reprocess(self): 
-        self.handler.relabel_frame()
+    
+    def reprocess(self): self.handler.relabel_frame()
+    
     def save(self): self.handler.save_tracks()
+    
     def magic(self): 
         print(f"Magic! Add your own feature here!")
     def quick_save_params(self): 

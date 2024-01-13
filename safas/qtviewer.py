@@ -149,8 +149,16 @@ class Viewer(PhotoViewer):
     
     @QtCore.Slot(int)
     def inc_video_index(self, frame_idx_inc): 
-        """ frame_idx_inc: +/- 1         """
-        self.frame_idx += frame_idx_inc
+        """ frame_idx_inc: +/- 1 """
+        fm = int(self.parent.handler.cap.get(cv2.CAP_PROP_FRAME_COUNT))
+        
+        if (self.frame_idx  + frame_idx_inc) > (fm-1): 
+            self.frame_idx = fm-1
+        elif (self.frame_idx  + frame_idx_inc) <0: 
+            self.frame_idx = 0
+        else: 
+            self.frame_idx += frame_idx_inc
+
         self.label.setText(str(self.frame_idx))
         self.frame_idx_change.emit(self.frame_idx)
 
@@ -158,7 +166,7 @@ class Viewer(PhotoViewer):
     def set_slider_range(self, vmin, vmax):
         """ """
         self.slider.setMinimum(vmin)
-        self.slider.setMaximum(vmax)
+        self.slider.setMaximum(vmax-1)
         self.slider.setValue(vmin)
         self.label.setText(str(vmin))
 

@@ -3,10 +3,10 @@
     "params_file": "params.json",
     "input_path": null,
     "output_path": null,
-    "data_file": "C:\\Users\\rmcma\\Desktop\\TestForRyan\\TestForRyan.avi",
+    "data_file": "C:\\Users\\rmcma\\data-ce\\2023-10-14 PoH TU Delft Test Vids\\000_KH2_01_DII12002_00.avi",
     "process_on_new_frame": false,
     "process_n_frames": true,
-    "n_frames": 5,
+    "n_frames": 10,
     "n_threads": 10
   },
   "labeler": {
@@ -21,7 +21,7 @@
       "apply_grad_filter": false,
       "grad_thresh_val": 30,
       "apply_min_px_filter": true,
-      "area_min_px": 10,
+      "area_min_px": 5,
       "cal_axis_length": false,
       "add_images": false
     }
@@ -31,7 +31,7 @@
       "params_file": null,
       "name": "linear_flocs",
       "process": false,
-      "obj-select-mode": "manual"
+      "obj-select-mode": "auto"
     },
     "kwargs": {
       "dist_max_filt": true,
